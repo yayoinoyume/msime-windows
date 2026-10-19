@@ -419,9 +419,6 @@ Result ResolveConflict(bool keep_local)
     const Settings settings = GetSettings();
     if (settings.url.empty())
         return {Status::Disabled, "还没填 WebDAV 地址", 0};
-    // 后台定时器走 Auto：开关关掉或选了「仅手动」就不该自己动，也不能顺手把本机推上去。
-    if (direction == Direction::Auto && (!settings.enabled || settings.interval == "manual"))
-        return {Status::Disabled, "自动同步未开启", 0};
 
     std::map<std::string, std::string> remote;
     bool remote_exists = false;
