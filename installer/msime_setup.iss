@@ -36,7 +36,7 @@
 #define MySourceRoot   "."
 ; TSF DLL 装在系统目录下：CS2 等开启 Trusted Mode 的游戏只放行「位于系统目录且有代码签名」的
 ; 第三方 in-proc DLL，装在 Program Files 的 DLL 连加载都会被拒，输入法在游戏里根本切不出来。
-; 本安装器是 32 位进程，[Code] 里访问 64 位那份要先过 ApplyPathRedirRulesForCurrentProcess。
+; 本安装器是 32 位进程，[Code] 里访问 64 位那份要改用 {sysnative}（见 TsfRoot64）。
 #define MyTsfRoot64    "{sys}\IME\MetasequoiaIME"
 #define MyTsfRoot32    "{syswow64}\IME\MetasequoiaIME"
 #ifdef LightPackage
@@ -718,10 +718,15 @@ begin
       '现有数据将从这里迁移：' + NewLine + Space + ResolvePreviousDataDir;
 end;
 
-{ 本进程能直接访问的 TSF 根目录。32 位安装器里不经改写的 System32 会被 WOW64 落到 SysWOW64。}
+{ 本进程能直接访问的 TSF 根目录。
+  32 位安装模式下 {sys} 展开成 SysWOW64，而 x64 DLL 要装进真正的 System32，
+  所以那种情况下改用 {sysnative}；64 位安装模式下它不可用，直接展开 {sys}。}
 function TsfRoot64: String;
 begin
-  Result := ApplyPathRedirRulesForCurrentProcess(True, ExpandConstant('{#MyTsfRoot64}'));
+  if IsWin64 and not Is64BitInstallMode then
+    Result := ExpandConstant('{sysnative}')
+  else
+    Result := ExpandConstant('{#MyTsfRoot64}');
 end;
 
 function TsfRoot32: String;
