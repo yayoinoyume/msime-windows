@@ -273,22 +273,16 @@ jobs:
           -TsfDirectory windows -ServerDirectory server -NoticesDirectory .
           -HelpCodeDirectory engine/helpcode -IncludeSymbols:${{ inputs.include_symbols }}
 
-      - name: Embed the exact product dependency manifest
-        env:
-          WINDOWS_COMMIT: ${{ github.sha }}
-        run: >
-          python scripts/product_lock.py manifest
-          --windows-commit "$env:WINDOWS_COMMIT"
-          --output installer/app_data/product-manifest.json
-
       # fork 包把诊断日志默认打开：候选窗的翻面判定、行序、上下键偏移都记在
-      # 桌面「水杉IME诊断日志.log」里。只改这份 fork 包里的出厂配置，不动仓库里的模板。
+      # 桌面「水杉IME诊断日志.log」里。只改这份 fork 包内的出厂配置，不动仓库模板。
+      # 该文件由 Prepare-PackageFiles.ps1 生成，所以必须排在那一步之后。
       - name: Enable diagnostic logging in this fork build
         shell: pwsh
         run: |
           $path = 'installer/app_data/config.default.toml'
           if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            throw "缺少出厂配置：$path"
+            $listing = (Get-ChildItem -LiteralPath 'installer/app_data' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name) -join ', '
+            throw "缺少出厂配置：$path；app_data 内容：$listing"
           }
           $text = Get-Content -LiteralPath $path -Raw
           $text = $text -replace '(?m)^diagnostic_log\s*=\s*false\s*$', 'diagnostic_log = true'
@@ -299,6 +293,14 @@ jobs:
             throw '未能打开 diagnostic_log，出厂配置格式可能变了。'
           }
           Write-Host 'diagnostic_log / tsf_diagnostic_log / candidate_window_diagnostic_log 已在该包内打开。'
+
+      - name: Embed the exact product dependency manifest
+        env:
+          WINDOWS_COMMIT: ${{ github.sha }}
+        run: >
+          python scripts/product_lock.py manifest
+          --windows-commit "$env:WINDOWS_COMMIT"
+          --output installer/app_data/product-manifest.json
 
       - name: Install the Chinese language file for Inno Setup
         shell: pwsh
