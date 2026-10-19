@@ -477,24 +477,6 @@ ConfigSyncConfig GetConfiguredConfigSync()
     return g_config_sync;
 }
 
-bool GetConfiguredSyncEnabled()
-{
-    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
-    return g_config_sync.enabled;
-}
-
-std::string GetConfiguredSyncString(const std::string &key)
-{
-    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
-    if (key == "url")
-        return g_config_sync.url;
-    if (key == "user")
-        return g_config_sync.user;
-    if (key == "password")
-        return g_config_sync.password;
-    return g_config_sync.interval;
-}
-
 bool SetConfiguredSyncBool(const std::string &key, bool value)
 {
     if (key != "enabled")

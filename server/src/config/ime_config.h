@@ -734,11 +734,9 @@ bool SetConfiguredNetworkString(const std::string &key, const std::string &value
 // value is not a usable HTTP proxy (other schemes such as socks5:// are rejected: WinHTTP cannot speak them).
 std::string NormalizeNetworkProxyServer(const std::string &value);
 // [sync] 段。password 走与其他凭证相同的 DPAPI 加密，因此读回来就能直接用。
-const ConfigSyncConfig &GetConfiguredConfigSync();
+ConfigSyncConfig GetConfiguredConfigSync();
 bool SetConfiguredSyncBool(const std::string &key, bool value);
 bool SetConfiguredSyncString(const std::string &key, const std::string &value);
-std::string GetConfiguredSyncString(const std::string &key);
-bool GetConfiguredSyncEnabled();
 const FrequencyAdjustmentConfig &GetConfiguredFrequencyAdjustment();
 bool SetConfiguredFrequencyAdjustmentString(const std::string &key, const std::string &value);
 bool SetConfiguredFrequencyAdjustmentInt(const std::string &key, int value);

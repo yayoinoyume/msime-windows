@@ -60,8 +60,6 @@ struct Result
 
 // 读取 [sync] 段。每次现读，设置页改完立刻生效。
 Settings GetSettings();
-bool SetSettingsString(const std::string &key, const std::string &value);
-bool SetSettingsBool(const std::string &key, bool value);
 
 // 计算本地快照与基线、远端的差异并把结果落到 report。不做任何网络请求，供测试和设置页
 // 「本地与云端对比」使用。

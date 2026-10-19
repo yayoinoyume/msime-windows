@@ -287,16 +287,6 @@ Settings GetSettings()
     return settings;
 }
 
-bool SetSettingsString(const std::string &key, const std::string &value)
-{
-    return SetConfiguredSyncString(key, value);
-}
-
-bool SetSettingsBool(const std::string &key, bool value)
-{
-    return SetConfiguredSyncBool(key, value);
-}
-
 Result Run(Direction direction)
 {
     // 手动按钮和定时器可能同时触发，串行化；第二个进来时直接告诉用户上一次还没完。
