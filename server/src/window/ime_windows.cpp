@@ -282,13 +282,9 @@ int CreateCandidateWindow(HINSTANCE hInstance)
         BootProbe::Fail("create-candidate-window", GetLastError(), "CreateWindowEx failed");
         return 1;
     }
+    BOOL disableTransitions = TRUE;
+    DwmSetWindowAttribute(hwnd_cand, DWMWA_TRANSITIONS_FORCEDISABLED, &disableTransitions, sizeof(disableTransitions));
     BootProbe::Step("create-candidate-window", "created");
-    else
-    {
-        BOOL disableTransitions = TRUE;
-        DwmSetWindowAttribute(hwnd_cand, DWMWA_TRANSITIONS_FORCEDISABLED, &disableTransitions,
-                              sizeof(disableTransitions));
-    }
 
     ::global_hwnd = hwnd_cand;
     CandidatePresenter::Instance().Bind(hwnd_cand);
