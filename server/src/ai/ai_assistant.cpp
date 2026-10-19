@@ -36,8 +36,13 @@ AiAssistant::detail::SuggestionCache g_candidate_cache;
 std::string Fetch(const AiAssistant::Request &request, uint64_t generation, Jev::Client &jev_client)
 {
     const auto &config = request.config;
-    if (!config.enabled || config.token.empty() || config.endpoint.empty() || config.model.empty() ||
-        request.pinyin_segments.empty() || g_generation.load() != generation)
+    // A blank token is not disqualifying, because whether a key is needed is a property of the
+    // service rather than of where it runs: a local model server (ollama and friends) answers
+    // unauthenticated, so demanding one only makes the user invent a placeholder. The trade is
+    // that a keyed service reached with a blank token returns 401, which the transport already
+    // treats as a silent miss - the same outcome as any other failure.
+    if (!config.enabled || config.endpoint.empty() || config.model.empty() || request.pinyin_segments.empty() ||
+        g_generation.load() != generation)
     {
         (void)0;
         return {};
@@ -72,16 +77,7 @@ std::string Fetch(const AiAssistant::Request &request, uint64_t generation, Jev:
     {
         // MiniMax M3.1 这类强制思考的模型会把思考过程混进 content（<think>…</think>），
         // 不剥掉的话下面的 JSON 解析直接失败，联想候选就静默消失。
-        const auto result_json = nlohmann::json::parse(metasequoia::voice::strip_reasoning(*content));
-        const auto &candidates = result_json.at("candidates");
-        if (!candidates.is_array() || candidates.empty())
-        {
-            (void)0;
-            return {};
-        }
-        const std::string candidate = candidates.at(0).value("text", std::string{});
-        (void)0;
-        return candidate;
+        return AiAssistant::detail::FirstCandidateText(metasequoia::voice::strip_reasoning(*content));
     }
     catch (const std::exception &)
     {

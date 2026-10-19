@@ -103,8 +103,13 @@ HttpResponse PerformJsonRequest(const std::string &endpoint, const std::string &
     char error[CURL_ERROR_SIZE] = {};
     curl_slist *headers = nullptr;
     headers = curl_slist_append(headers, payload ? "Content-Type: application/json" : "Accept: application/json");
-    const std::string authorization = "Authorization: Bearer " + token;
-    headers = curl_slist_append(headers, authorization.c_str());
+    // Blank token means the endpoint is unauthenticated (a local model server); omit the header
+    // instead of sending an empty Bearer.
+    if (!token.empty())
+    {
+        const std::string authorization = "Authorization: Bearer " + token;
+        headers = curl_slist_append(headers, authorization.c_str());
+    }
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     NetworkProxy::ApplyToCurl(curl);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -162,15 +167,17 @@ ApiCredentialTest::Result TestChat(const ApiCredentialTest::Request &request)
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
     const std::string model = Value(request, "model");
-    if (!CloudTranslation::IsUsableSecret(token))
-        return {false, "请先填写有效的 API Key。"};
     if (!IsHttpEndpoint(endpoint) || model.empty())
-        return {false, "请填写有效的 HTTPS 接口地址和模型名。"};
+        return {false, "请填写有效的接口地址和模型名。"};
+    // No key is a legitimate configuration for a local model server; send the probe as-is and
+    // let a 401 speak for a service that does want one.
+    if (!token.empty() && !CloudTranslation::IsUsableSecret(token))
+        return {false, "请填写有效的 API Key。"};
     const std::string provider = Value(request, "provider");
     const std::string payload = ApiCredentialTest::detail::BuildChatProbeRequestBody(provider, model, endpoint).dump();
     const HttpResponse response = PerformJsonRequest(endpoint, token, &payload);
     if (response.code == CURLE_OK && response.status >= 200 && response.status < 300)
-        return {true, "连接成功，API Key 和模型配置有效。"};
+        return {true, token.empty() ? "连接成功，接口地址和模型配置有效。" : "连接成功，API Key 和模型配置有效。"};
     return {false, "测试失败：" + ErrorDetail(response)};
 }
 

@@ -49,6 +49,7 @@ set(TEST_SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_ai_assistant_cache.cpp"
     "${CMAKE_SOURCE_DIR}/src/ai/ai_assistant_cache.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_ai_assistant_request.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/test_ai_local_service.cpp"
     "${CMAKE_SOURCE_DIR}/src/ai/ai_assistant_request.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_candidate_ui_action_policy.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_candidate_translation_policy.cpp"
