@@ -209,6 +209,72 @@ TEST_CASE(stack_panel_padding_insets_its_children)
     REQUIRE_NEAR(child->GetBounds().y, 12.0f);
 }
 
+TEST_CASE(bottom_up_stack_panel_anchors_the_last_child_to_the_bottom_edge)
+{
+    // 候选窗翻到光标上方时用它：预编辑行是最后添加的子元素，它贴底边（也就是贴光标），
+    // 它上方的候选行依次往上堆。
+    auto first = MakeFixed(60.0f, 20.0f);
+    auto second = MakeFixed(40.0f, 30.0f);
+    auto panel = std::make_shared<StackPanel>(8.0f);
+    panel->AddChild(first);
+    panel->AddChild(second);
+    panel->SetBottomUp(true);
+
+    const SizeF outer = panel->MeasureInLayout({200.0f, 200.0f});
+    panel->ArrangeInLayout({0.0f, 0.0f, 200.0f, 100.0f});
+
+    // 测量结果与自上而下时一致，只是落点不同。
+    REQUIRE_NEAR(outer.height, 58.0f);
+    REQUIRE_NEAR(second->GetBounds().y, 70.0f);
+    REQUIRE_NEAR(first->GetBounds().y, 42.0f);
+}
+
+TEST_CASE(panel_can_insert_and_remove_children_to_reorder_rows)
+{
+    auto first = MakeFixed(60.0f, 20.0f);
+    auto second = MakeFixed(40.0f, 30.0f);
+    auto panel = std::make_shared<StackPanel>();
+    panel->AddChild(second);
+    panel->InsertChild(0, first);
+
+    panel->MeasureInLayout({200.0f, 200.0f});
+    panel->ArrangeInLayout({0.0f, 0.0f, 200.0f, 100.0f});
+    REQUIRE_NEAR(first->GetBounds().y, 0.0f);
+    REQUIRE_NEAR(second->GetBounds().y, 20.0f);
+
+    panel->RemoveChild(first);
+    panel->MeasureInLayout({200.0f, 200.0f});
+    panel->ArrangeInLayout({0.0f, 0.0f, 200.0f, 100.0f});
+    REQUIRE_NEAR(second->GetBounds().y, 0.0f);
+    // 被移出的子元素不再算进测量尺寸。
+    REQUIRE_NEAR(panel->MeasureInLayout({200.0f, 200.0f}).width, 40.0f);
+}
+
+TEST_CASE(reversed_vertical_candidates_grow_upwards_from_the_list_bottom)
+{
+    // 候选窗翻到光标上方时用它：第 1 项贴着列表底边（紧接下面的预编辑行），序号往上递增。
+    CandidateList list(28.0f);
+    list.SetOrientation(CandidateList::Orientation::Vertical);
+    list.SetItems({{L"1", L"候选一", L"", L""}, {L"2", L"候选二", L"", L""}, {L"3", L"候选三", L"", L""}});
+    const SizeF natural = list.MeasureInLayout({1000.0f, 1000.0f});
+    list.ArrangeInLayout({0.0f, 0.0f, natural.width, natural.height});
+    const RectF uprightFirst = list.GetItemBounds(0);
+
+    list.SetReverseVertical(true);
+    list.MeasureInLayout({1000.0f, 1000.0f});
+    list.ArrangeInLayout({0.0f, 0.0f, natural.width, natural.height});
+
+    const RectF first = list.GetItemBounds(0);
+    const RectF second = list.GetItemBounds(1);
+    const RectF third = list.GetItemBounds(2);
+    REQUIRE_NEAR(first.y + first.height, natural.height);
+    REQUIRE_NEAR(first.height, uprightFirst.height);
+    REQUIRE(second.y < first.y);
+    REQUIRE(third.y < second.y);
+    // 倒序只改落点，命中区域跟着走：第一项现在在底部。
+    REQUIRE_NEAR(third.y, 0.0f);
+}
+
 TEST_CASE(horizontal_stack_panel_advances_along_x)
 {
     auto first = MakeFixed(60.0f, 20.0f);

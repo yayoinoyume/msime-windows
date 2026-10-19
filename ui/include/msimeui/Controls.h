@@ -639,6 +639,9 @@ class CandidateList : public Visual
         // row) sits between the list and the frame's top edge.
         float outerCornerRadius = 0.0f;
         bool outerTopCornersEnabled = true;
+        // Same switch for the list's bottom edge, for a window that puts
+        // something (e.g. a preedit row) below the list instead of above it.
+        bool outerBottomCornersEnabled = true;
         // Horizontal only: when the list is arranged wider than a line of
         // items, spread the spare width evenly over that line's items so the
         // last one reaches the list's right edge (full-bleed highlights).
@@ -720,7 +723,14 @@ class CandidateList : public Visual
     void SetOnItemActivated(ItemActivatedHandler handler);
     void SetOnContextMenu(ContextMenuHandler handler);
     void SetAppearance(Appearance appearance);
+    // 只改「顶边/底边的两个角算不算列表自己的外角」。候选窗翻到光标上方后预编辑行跑到列表
+    // 下面，列表贴上卡片顶边的边就换成了顶边；改整份外观会连带清掉文字布局缓存。
+    void SetOuterCornersEnabled(bool top, bool bottom);
     void SetOrientation(Orientation orientation);
+    // 竖排倒序：第 1 项排在最下面，后面的依次往上。供贴在光标上方展开的列表用：离光标最
+    // 近的一行就是序号最小的候选。命中测试、选中高亮与键盘上下键都跟着倒过来。
+    // 横排忽略（换行后左右走向不变，不需要倒序）。
+    void SetReverseVertical(bool reverse);
     void SetHoverEnabled(bool enabled);
 
     SizeF Measure(const SizeF &availableSize) override;
@@ -770,6 +780,7 @@ class CandidateList : public Visual
 
     std::vector<Item> items_;
     std::vector<ItemGeometry> itemGeometry_;
+    bool reverseVertical_ = false;
     mutable std::unordered_map<std::wstring, float> textMetricCache_;
     mutable std::wstring textMetricFamily_;
     std::unordered_map<std::wstring, Microsoft::WRL::ComPtr<IDWriteTextLayout>> textLayoutCache_;

@@ -3,6 +3,7 @@
 #include "defines/globals.h"
 #include "ipc/ipc.h"
 #include "global/globals.h"
+#include "window/candidate_placement.h"
 #include <algorithm>
 #include <cmath>
 #include <utility>
@@ -494,12 +495,15 @@ int GetTaskbarHeight()
     return 0;
 }
 
+using FanyImeUi::CandidateEdgePadPx;
+using FanyImeUi::CandidateFitsBelowCaret;
+using FanyImeUi::CandidateGapBelowCaretPx;
+
 int AdjustCandidateWindowPosition(                  //
     const POINT *point,                             //
     const std::pair<double, double> &containerSize, //
     std::shared_ptr<std::pair<int, int>> properPos, //
-    FLOAT layoutScale,                              //
-    double minWidthDip                              //
+    FLOAT layoutScale                               //
 )
 {
     const bool isVertical = GetConfiguredCandidateWindowLayout() == "vertical";
@@ -518,23 +522,18 @@ int AdjustCandidateWindowPosition(                  //
         scale = 1.0f;
     }
     // Design offsets are DIPs so gaps stay visually stable under 150%/200% DPI.
-    const int caretGapPx = static_cast<int>(std::lround(3.0 * scale));
-    const int edgePadPx = static_cast<int>(std::lround(2.0 * scale));
+    const int caretGapPx = CandidateGapBelowCaretPx(scale);
+    const int edgePadPx = CandidateEdgePadPx(scale);
 
     properPos->first = point->x;
     properPos->second = point->y + caretGapPx;
-    // minWidthDip: first-pass DOM measure can be far too narrow near a screen
-    // edge. Flip using at least that floor so the card is not parked at the
-    // caret with its real right half hanging off the monitor.
-    const double widthDip = (std::max)(containerSize.first, minWidthDip);
-    int width = static_cast<int>(std::ceil(widthDip * scale));
+    int width = static_cast<int>(std::ceil(containerSize.first * scale));
     // Decide whether to flip using the tallest vertical list seen so far. This
     // keeps a short list above the caret when a full list would not fit below,
     // avoiding a later below-to-above jump as more candidates appear. Position
     // the flipped window using its *current* height, however, so its lower edge
     // stays next to the current input line instead of preserving empty packing.
     const double decisionHeightDip = isVertical ? g_max_vertical_container_height_dip : containerSize.second;
-    const int decisionHeightPx = static_cast<int>(std::ceil(decisionHeightDip * scale));
     const int currentHeightPx = static_cast<int>(std::ceil(containerSize.second * scale));
     if (properPos->first + width > coordinates.right - edgePadPx)
     {
@@ -552,7 +551,7 @@ int AdjustCandidateWindowPosition(                  //
     // Decide against the same lower limit every downstream clamp uses. Testing
     // against the bare work-area bottom declared a card "fits below" that the
     // edge pad then pushed back up — straight onto the caret's own text line.
-    if (properPos->second + decisionHeightPx > coordinates.bottom - edgePadPx)
+    if (!CandidateFitsBelowCaret(*point, decisionHeightDip, scale, coordinates))
     {
         // Point[1] is GetTextExt.bottom (the line's bottom). Sit the opaque card
         // so its bottom meets the line's top — same for short and fully expanded
@@ -565,6 +564,26 @@ int AdjustCandidateWindowPosition(                  //
         }
     }
     return 0;
+}
+
+bool CandidateCardSitsAboveCaret(POINT caret, double cardHeightDip, FLOAT layoutScale)
+{
+    if (cardHeightDip <= 0.0)
+    {
+        return false;
+    }
+    FLOAT scale = layoutScale > 0.0f ? layoutScale : GetScaleForPoint(caret);
+    if (scale <= 0.0f)
+    {
+        scale = 1.0f;
+    }
+    const MonitorCoordinates coordinates = GetMonitorCoordinatesFromPoint(caret);
+    // 竖排时 AdjustCandidateWindowPosition 判翻面用的是「见过的最高列表」，这里跟它走，
+    // 否则「窗口翻到上面」与「内容按上面排」会在列表由短变长的那一帧对不上。
+    const double decisionHeightDip = GetConfiguredCandidateWindowLayout() == "vertical"
+                                         ? (std::max)(g_max_vertical_container_height_dip, cardHeightDip)
+                                         : cardHeightDip;
+    return !CandidateFitsBelowCaret(caret, decisionHeightDip, scale, coordinates);
 }
 
 void ResetCandidatePlacementMemory()

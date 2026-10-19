@@ -36,6 +36,32 @@ Sciter is not an active product backend. The msimeui library owns generic contro
 rendering, never Server configuration, pipe sessions, dictionary access, or global
 input state.
 
+## Candidate window above the caret
+
+The card opens below the caret (preedit row on top, candidates downwards) unless
+`FanyImeUi::CandidateFitsBelowCaret` (`window/candidate_placement.h`) says it would cross the
+bottom edge pad; then it flips above and reverses: the preedit row is the bottom row, right
+against the caret, and candidates stack upwards, so the rows nearest the caret are the first
+candidates instead of the last. `CandidateCardSitsAboveCaret` and
+`AdjustCandidateWindowPosition` make the decision through the same helper, so the window is
+never on one side while its rows are ordered for the other.
+
+`CandidateSkinScene::SetAboveCaret` implements the reversal without rebuilding the scene: the
+preedit row moves to the end of `body_`, `StackPanel::SetBottomUp` anchors the last child to
+the bottom edge, and `CandidateList::SetReverseVertical` mirrors the rows inside the list
+(vertical layout only; horizontal rows already read top to bottom), so candidate 1 is the row
+right above the preedit row and the numbers grow upwards. Hit testing, the selected-row
+highlight and the vertical arrow keys all read the same mirrored geometry.
+
+Paging arrows stay under the list, so above the caret they end up above the list and under the
+preedit row; the vertical expand panel stays below the first row. What mirrors with the row
+order is the decoration that only makes sense on one side: the preedit divider moves from the
+block's bottom edge to its top (`TextBlock::SetTopRule`), the preedit row's margin swaps top for
+bottom (the skin's row gap has to point at the candidates again), and
+`CandidateList::SetOuterCornersEnabled` moves the card-radius corners to whichever list edge now
+sits on the card. The flip decision is measured with the card height, so reversing the rows on a
+frame does not move the flip.
+
 ## v2 skins
 
 `schema_version = 2` skins must use `base = "canvas"` (see `skin/candidate_skin_catalog.h`);

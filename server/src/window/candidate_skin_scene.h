@@ -180,6 +180,15 @@ class CandidateSkinScene
 
     Result Apply(const Settings &settings);
 
+    // 候选窗贴在光标下方时自上而下（输入行在最上），贴在光标上方时自下而上（输入行贴卡片底边、
+    // 紧贴光标，候选行依次向上堆）。两种情况共用同一棵场景，只换行序与堆叠方向，不重建控件。
+    // 设置页的皮肤预览固定用自上而下。
+    void SetAboveCaret(bool above);
+    bool AboveCaret() const
+    {
+        return aboveCaret_;
+    }
+
     // 场景的根（外框所在的竖排面板）；第一次 Apply 之前为空。
     const std::shared_ptr<msimeui::StackPanel> &Root() const
     {
@@ -224,12 +233,22 @@ class CandidateSkinScene
 
   private:
     void Build(bool horizontal, bool pageArrows, bool expandPanel);
+    // 按 aboveCaret_ 重排行序与堆叠方向；预编辑行隐藏时它仍在场景里，只是高度为 0。
+    void ApplyRowOrder();
 
     Callbacks callbacks_;
     bool built_ = false;
     bool horizontal_ = false;
     bool pageArrows_ = false;
     bool expandPanel_ = false;
+    bool aboveCaret_ = false;
+    // 预编辑行的分隔线颜色。套皮肤时记下，换行序时要把它从块的下边改到上边。
+    D2D1_COLOR_F preeditDivider_ = D2D1::ColorF(0, 0.0f);
+    // 预编辑行隐藏时它高度为 0，列表顶边直接贴卡片顶边；换行序时贴角圆角要按这一位重算。
+    bool preeditHidden_ = false;
+    // 皮肤给预编辑行算好的外边距。翻到光标上方时上下对调：原本落在它和候选之间那条间距
+    // 要改到朝下的那一侧，否则贴着光标的会是一段空白而不是输入行。
+    msimeui::Thickness preeditMargin_{};
     std::shared_ptr<msimeui::StackPanel> root_;
     std::shared_ptr<msimeui::Image> decoration_;
     std::shared_ptr<msimeui::Card> card_;

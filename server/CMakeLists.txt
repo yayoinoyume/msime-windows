@@ -306,6 +306,7 @@ set(SRC_FILES
     "./src/utils/shuangpin_preedit_display.h"
     "./src/utils/window_utils.cpp"
     "./src/utils/window_utils.h"
+    "./src/window/candidate_placement.h"
     "./src/window/candidate_presenter.cpp"
     "./src/window/candidate_presenter.h"
     "./src/window/candidate_skin_layers.cpp"

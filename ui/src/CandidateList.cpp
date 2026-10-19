@@ -266,10 +266,32 @@ ComPtr<IDWriteTextLayout> CandidateList::TextLayoutFor(IDWriteFactory *factory, 
     return layout;
 }
 
+void CandidateList::SetOuterCornersEnabled(bool top, bool bottom)
+{
+    if (appearance_.outerTopCornersEnabled == top && appearance_.outerBottomCornersEnabled == bottom)
+    {
+        return;
+    }
+    appearance_.outerTopCornersEnabled = top;
+    appearance_.outerBottomCornersEnabled = bottom;
+    InvalidateVisual();
+}
+
 void CandidateList::SetOrientation(Orientation orientation)
 {
     orientation_ = orientation;
     InvalidateMeasure();
+}
+
+void CandidateList::SetReverseVertical(bool reverse)
+{
+    if (reverseVertical_ == reverse)
+    {
+        return;
+    }
+    reverseVertical_ = reverse;
+    InvalidateMeasure();
+    InvalidateVisual();
 }
 
 void CandidateList::SetHoverEnabled(bool enabled)
@@ -404,6 +426,12 @@ RectF CandidateList::ItemRect(size_t index) const
     if (index >= itemGeometry_.size())
         return {};
     RectF rect = itemGeometry_[index].bounds;
+    // 竖排倒序：每一项用它镜像后的位置，列表随之从下往上填满。绘制、命中与键盘上下键
+    // 都经过这里，所以倒序只有一处来源。
+    if (reverseVertical_ && orientation_ == Orientation::Vertical)
+    {
+        rect.y = bounds_.height - (rect.y + rect.height);
+    }
     rect.x += bounds_.x;
     rect.y += bounds_.y;
     // 竖排：每行都应铺满列表实际宽度（列表已被拉伸到卡片内宽），使选中高亮与命中区域
@@ -570,7 +598,8 @@ void CandidateList::Render(DeviceResources &deviceResources)
                     const float x = itemRect.x - bounds_.x;
                     const float y = itemRect.y - bounds_.y;
                     const bool top = appearance_.outerTopCornersEnabled && y <= kEdgeEpsilon;
-                    const bool bottom = y + itemRect.height >= contentBottom - kEdgeEpsilon;
+                    const bool bottom =
+                        appearance_.outerBottomCornersEnabled && y + itemRect.height >= contentBottom - kEdgeEpsilon;
                     const bool left = x <= kEdgeEpsilon;
                     const bool right = x + itemRect.width >= contentRight - kEdgeEpsilon;
                     const float inner = appearance_.cornerRadius;
@@ -818,15 +847,25 @@ bool CandidateList::OnKeyDown(WPARAM key, LPARAM lParam)
     }
 
     size_t next = selectedIndex_;
+    // 竖排倒序时画面上「上」是序号更大的方向，方向键要跟着翻。
+    const bool reverseVertical = reverseVertical_ && orientation_ == Orientation::Vertical;
+    const auto previous = [this]() { return selectedIndex_ == 0 ? items_.size() - 1 : selectedIndex_ - 1; };
+    const auto following = [this]() { return selectedIndex_ + 1 >= items_.size() ? 0 : selectedIndex_ + 1; };
     switch (key)
     {
     case VK_UP:
     case VK_LEFT:
-        next = selectedIndex_ == 0 ? items_.size() - 1 : selectedIndex_ - 1;
+        if (key == VK_LEFT)
+            next = previous();
+        else
+            next = reverseVertical ? following() : previous();
         break;
     case VK_DOWN:
     case VK_RIGHT:
-        next = selectedIndex_ + 1 >= items_.size() ? 0 : selectedIndex_ + 1;
+        if (key == VK_RIGHT)
+            next = following();
+        else
+            next = reverseVertical ? previous() : following();
         break;
     case VK_HOME:
         next = 0;

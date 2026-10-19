@@ -478,6 +478,7 @@ void CandidateSkinScene::Build(bool horizontal, bool pageArrows, bool expandPane
         if (pager_)
             body_->AddChild(pager_);
     }
+    ApplyRowOrder();
     msimeui::Brush brush;
     brush.fill = D2D1::ColorF(0x202020);
     brush.stroke = D2D1::ColorF(0x9B9B9B, 0x2E / 255.0f);
@@ -508,6 +509,70 @@ void CandidateSkinScene::Build(bool horizontal, bool pageArrows, bool expandPane
     frame_ = std::make_shared<msimeui::Container>();
     frame_->SetChild(cardColumn_);
     root_->AddChild(frame_);
+}
+
+// 行序与堆叠方向：贴在光标下方时预编辑行在最上、候选往下排；贴在光标上方时预编辑行贴卡片底边，
+// 候选依次往上堆，离光标最近的是输入内容和排在前面的候选。两者共用同一批子控件，只调顺序。
+void CandidateSkinScene::ApplyRowOrder()
+{
+    if (!body_ || !preedit_ || !list_)
+    {
+        return;
+    }
+    // 展开区的首行就是 list_，预编辑行不能是它的子节点。整行挪的还有竖排的翻页箭头：
+    // 贴在光标下方时它在卡片最下面（列表下方），翻到上方后跟着挪到最上面，免得夹在候选和
+    // 输入行之间。横排的箭头在候选行自己的槽位里，不归 body_ 管，别去动它。
+    const bool pagerIsBodyRow = pager_ && !horizontal_;
+    body_->RemoveChild(preedit_);
+    if (pagerIsBodyRow)
+    {
+        body_->RemoveChild(pager_);
+    }
+    if (aboveCaret_)
+    {
+        if (pagerIsBodyRow)
+        {
+            body_->InsertChild(0, pager_);
+        }
+        body_->AddChild(preedit_);
+    }
+    else
+    {
+        if (pagerIsBodyRow)
+        {
+            body_->AddChild(pager_);
+        }
+        body_->InsertChild(0, preedit_);
+    }
+    body_->SetBottomUp(aboveCaret_);
+    // 预编辑行与候选之间的间距原本压在它的下外边距上（候选在它下面）；翻到光标上方后候选
+    // 跑到它上面，这段间距得跟着换到上侧，否则贴光标的会是一段空白。
+    msimeui::Thickness margin = preeditMargin_;
+    if (aboveCaret_)
+    {
+        std::swap(margin.top, margin.bottom);
+    }
+    preedit_->SetMargin(margin);
+    // 列表内部也跟着倒序：倒序后第 1 项落在列表底边，正好接在预编辑行上方，序号往上递增。
+    // 横排没有上下之分，只按行往下排，不需要倒。
+    list_->SetReverseVertical(aboveCaret_ && !horizontal_);
+    // 分隔线要改到上侧，否则线落在卡片下沿外面。
+    preedit_->SetTopRule(aboveCaret_ ? preeditDivider_ : D2D1::ColorF(0, 0.0f), 1.0f);
+    preedit_->SetBottomRule(aboveCaret_ ? D2D1::ColorF(0, 0.0f) : preeditDivider_, 1.0f);
+    // 贴角圆角跟着「列表哪条边贴着卡片」走：预编辑行在上时是底边，翻到上面后是顶边；
+    // 预编辑行隐藏时它高度为 0，两条边都贴着卡片。
+    const bool preeditAbove = !aboveCaret_ || preeditHidden_;
+    list_->SetOuterCornersEnabled(aboveCaret_ || preeditHidden_, preeditAbove);
+}
+
+void CandidateSkinScene::SetAboveCaret(bool above)
+{
+    if (aboveCaret_ == above)
+    {
+        return;
+    }
+    aboveCaret_ = above;
+    ApplyRowOrder();
 }
 
 CandidateSkinScene::Result CandidateSkinScene::Apply(const Settings &settings)
@@ -632,6 +697,7 @@ CandidateSkinScene::Result CandidateSkinScene::Apply(const Settings &settings)
     appearance.cornerRadius = tokens.itemRadius;
     // 预编辑行隐藏时列表顶边才贴着卡片顶边。
     const bool preeditHidden = settings.preeditHidden;
+    preeditHidden_ = preeditHidden;
     appearance.outerCornerRadius = tokens.outerItemRadius;
     appearance.outerTopCornersEnabled = preeditHidden;
     appearance.justifyHorizontalRows = tokens.justifyRows;
@@ -639,19 +705,18 @@ CandidateSkinScene::Result CandidateSkinScene::Apply(const Settings &settings)
     // 让首项贴着卡片的内容顶边。
     if (preeditHidden)
     {
-        preedit_->SetMargin(
-            {0.0f, 0.0f, 0.0f,
-             tokens.outerItemRadius > 0.0f || tokens.trimHiddenPreeditGap ? -kCandidateBodyRowSpacingDip : 0.0f});
+        preeditMargin_ = {0.0f, 0.0f, 0.0f,
+                          tokens.outerItemRadius > 0.0f || tokens.trimHiddenPreeditGap ? -kCandidateBodyRowSpacingDip
+                                                                                       : 0.0f};
     }
     else
     {
-        msimeui::Thickness preeditMargin{tokens.preeditMargin.left, tokens.preeditMargin.top,
-                                         tokens.preeditMargin.right, tokens.preeditMargin.bottom};
+        preeditMargin_ = {tokens.preeditMargin.left, tokens.preeditMargin.top, tokens.preeditMargin.right,
+                          tokens.preeditMargin.bottom};
         // v2 的 line_gap_dip 只是预编辑行与候选之间的距离，列表与翻页箭头之间仍是 body 的 2 DIP 行距，
         // 所以落在预编辑行的下外边距上，再抵掉那 2 DIP。
         if (package && package->schemaVersion >= 2 && package->lineGapDip)
-            preeditMargin.bottom = static_cast<float>(*package->lineGapDip) - kCandidateBodyRowSpacingDip;
-        preedit_->SetMargin(preeditMargin);
+            preeditMargin_.bottom = static_cast<float>(*package->lineGapDip) - kCandidateBodyRowSpacingDip;
     }
     appearance.textColor = palette.candidateText;
     appearance.labelColor = tokens.number;
@@ -788,8 +853,9 @@ CandidateSkinScene::Result CandidateSkinScene::Apply(const Settings &settings)
     preedit_->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
     preedit_->SetTextLayoutPadding({5.0f, 0.0f, 5.0f, 0.0f});
     // 预编辑背景与分隔线：底色带与高亮同圆角，分隔线固定 1px；有其一时预编辑行横向铺满，否则底色只包住文字。
+    // 分隔线原来总是画在底部；候选窗翻到光标上方后由 ApplyRowOrder 改到顶部。
     preedit_->SetBackground(tokens.preeditBackground, tokens.itemRadius);
-    preedit_->SetBottomRule(tokens.preeditDivider, 1.0f);
+    preeditDivider_ = tokens.preeditDivider;
     preedit_->SetHorizontalAlignment(tokens.preeditBackground.a > 0.001f || tokens.preeditDivider.a > 0.001f
                                          ? msimeui::HorizontalAlignment::Stretch
                                          : msimeui::HorizontalAlignment::Leading);
@@ -897,5 +963,6 @@ CandidateSkinScene::Result CandidateSkinScene::Apply(const Settings &settings)
     }
     result.tokens = tokens;
     result.palette = palette;
+    ApplyRowOrder();
     return result;
 }

@@ -155,6 +155,9 @@ class Panel : public Visual
 {
   public:
     void AddChild(std::shared_ptr<Visual> child);
+    // 插到指定位置；下标超过子元素个数时等同于 AddChild。
+    void InsertChild(size_t index, std::shared_ptr<Visual> child);
+    void RemoveChild(const std::shared_ptr<Visual> &child);
     void Attach(Window *window) override;
     Visual *FindVisualAt(const PointF &point) override;
     Visual *FindFocusableAt(const PointF &point) override;
@@ -171,6 +174,10 @@ class StackPanel : public Panel
     void SetSpacing(float spacing);
     void SetHorizontalContentAlignment(HorizontalAlignment alignment);
     void SetVerticalContentAlignment(VerticalAlignment alignment);
+    // 从底部往上排：子元素的声明顺序仍是自上而下，但最后添加的那个贴着面板底边，
+    // 前面的一律往它上方叠。用于贴在光标上方展开、越靠近光标的行越靠下的浮层。
+    // 只改变落点，测量结果与自上而下时完全一致。
+    void SetBottomUp(bool bottomUp);
 
     SizeF Measure(const SizeF &availableSize) override;
     void Arrange(const RectF &finalRect) override;
@@ -180,6 +187,7 @@ class StackPanel : public Panel
     float spacing_ = 0.0f;
     HorizontalAlignment horizontalContentAlignment_ = HorizontalAlignment::Stretch;
     VerticalAlignment verticalContentAlignment_ = VerticalAlignment::Leading;
+    bool bottomUp_ = false;
     std::vector<SizeF> measuredChildren_;
     SizeF measuredContent_ = {};
 };
@@ -530,6 +538,9 @@ class TextBlock : public Visual
     // A horizontal rule along the bottom edge, below the text. The block grows
     // by the rule's width; width <= 0 or alpha 0 removes it.
     void SetBottomRule(D2D1_COLOR_F color, float width);
+    // Same rule along the top edge, for a block that sits at the card's bottom
+    // (an above-caret candidate window) and has to divide downwards.
+    void SetTopRule(D2D1_COLOR_F color, float width);
 
     SizeF Measure(const SizeF &availableSize) override;
     void Arrange(const RectF &finalRect) override;
@@ -538,6 +549,7 @@ class TextBlock : public Visual
   private:
     SizeF MeasureText(const SizeF &availableSize);
     float BottomRuleWidth() const;
+    float TopRuleWidth() const;
     void InvalidateTextLayoutCache();
     void InvalidateTextFormatCache();
 
@@ -558,6 +570,8 @@ class TextBlock : public Visual
     float backgroundRadius_ = 0.0f;
     D2D1_COLOR_F bottomRuleColor_ = D2D1::ColorF(0, 0.0f);
     float bottomRuleWidth_ = 0.0f;
+    D2D1_COLOR_F topRuleColor_ = D2D1::ColorF(0, 0.0f);
+    float topRuleWidth_ = 0.0f;
     SizeF measured_ = {};
     std::wstring cachedFontFamily_;
     float cachedLayoutWidth_ = -1.0f;

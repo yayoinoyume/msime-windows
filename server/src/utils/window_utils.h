@@ -100,13 +100,18 @@ bool IsWindowInMoveSizeLoop(HWND hwnd);
 POINT PlaceResizedHost(HWND hwnd, int width, int height, const RECT *suggestedRect, const RECT &offscreenInsets = {},
                        const RECT *previousInsets = nullptr);
 
+// `layoutScale` 为 0 时自己按光标所在显示器解析。
 int AdjustCandidateWindowPosition(        //
     const POINT *point,                   //
     const std::pair<double, double> &,    //
     std::shared_ptr<std::pair<int, int>>, //
-    FLOAT layoutScale = 0.0f,             //
-    double minWidthDip = 0.0              //
+    FLOAT layoutScale = 0.0f              //
 );
+
+// 候选卡片会不会翻到光标上方。候选窗把内容按这个结果上下翻转（输入行贴光标），
+// 判定与 AdjustCandidateWindowPosition 的翻面条件一字不差——两者都走
+// window/candidate_placement.h 的那个判断。
+bool CandidateCardSitsAboveCaret(POINT caret, double cardHeightDip, FLOAT layoutScale = 0.0f);
 
 // Drop the "tallest list so far" flip memory. A bogus oversized measure would
 // otherwise keep parking later cards at the top/left of the monitor.

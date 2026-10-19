@@ -875,6 +875,32 @@ void Panel::AddChild(std::shared_ptr<Visual> child)
     InvalidateMeasure();
 }
 
+void Panel::InsertChild(size_t index, std::shared_ptr<Visual> child)
+{
+    if (!child)
+    {
+        return;
+    }
+
+    AdoptChild(child);
+    children_.insert(children_.begin() + static_cast<std::ptrdiff_t>((std::min)(index, children_.size())),
+                     std::move(child));
+    InvalidateMeasure();
+}
+
+void Panel::RemoveChild(const std::shared_ptr<Visual> &child)
+{
+    const auto found = std::find(children_.begin(), children_.end(), child);
+    if (found == children_.end())
+    {
+        return;
+    }
+
+    ReleaseChild(*found);
+    children_.erase(found);
+    InvalidateMeasure();
+}
+
 void Panel::Attach(Window *window)
 {
     Visual::Attach(window);
@@ -967,6 +993,16 @@ void StackPanel::SetVerticalContentAlignment(VerticalAlignment alignment)
     verticalContentAlignment_ = alignment;
 }
 
+void StackPanel::SetBottomUp(bool bottomUp)
+{
+    if (bottomUp_ == bottomUp)
+    {
+        return;
+    }
+    bottomUp_ = bottomUp;
+    InvalidateArrange();
+}
+
 SizeF StackPanel::Measure(const SizeF &availableSize)
 {
     measuredChildren_.clear();
@@ -997,7 +1033,9 @@ void StackPanel::Arrange(const RectF &finalRect)
     bounds_ = finalRect;
     const RectF inner = DeflateRect(finalRect, padding_);
 
-    float cursorY = ComputeAlignedStart(inner.y, inner.height, measuredContent_.height, verticalContentAlignment_);
+    float cursorY =
+        bottomUp_ ? inner.y + inner.height - measuredContent_.height
+                  : ComputeAlignedStart(inner.y, inner.height, measuredContent_.height, verticalContentAlignment_);
     // A child added since the last measure has no measurement yet; it waits for the next pass.
     for (size_t index = 0; index < children_.size() && index < measuredChildren_.size(); ++index)
     {
@@ -2733,15 +2771,28 @@ void TextBlock::SetBottomRule(D2D1_COLOR_F color, float width)
     InvalidateVisual();
 }
 
+void TextBlock::SetTopRule(D2D1_COLOR_F color, float width)
+{
+    topRuleColor_ = color;
+    topRuleWidth_ = (std::max)(width, 0.0f);
+    InvalidateMeasure();
+    InvalidateVisual();
+}
+
 float TextBlock::BottomRuleWidth() const
 {
     return bottomRuleColor_.a > 0.001f ? bottomRuleWidth_ : 0.0f;
 }
 
+float TextBlock::TopRuleWidth() const
+{
+    return topRuleColor_.a > 0.001f ? topRuleWidth_ : 0.0f;
+}
+
 SizeF TextBlock::Measure(const SizeF &availableSize)
 {
     MeasureText(availableSize);
-    measured_.height += BottomRuleWidth();
+    measured_.height += BottomRuleWidth() + TopRuleWidth();
     return measured_;
 }
 
@@ -2871,20 +2922,29 @@ void TextBlock::Render(DeviceResources &deviceResources)
         MeasureText({std::max(bounds_.width, 1.0f), std::max(bounds_.height, 1.0f)});
     }
 
-    // A collapsed block (a hidden preedit arranged at zero height) paints neither its band nor its rule.
+    // A collapsed block (a hidden preedit arranged at zero height) paints neither its band nor its rules.
     const float ruleWidth = BottomRuleWidth();
-    if (bounds_.height > ruleWidth && bounds_.width > 0.0f)
+    const float topRuleWidth = TopRuleWidth();
+    if (bounds_.height > ruleWidth + topRuleWidth && bounds_.width > 0.0f)
     {
         if (background_.a > 0.001f)
         {
             if (ID2D1SolidColorBrush *fill = deviceResources.GetSolidColorBrush(background_))
             {
-                const D2D1_RECT_F rect = D2D1::RectF(bounds_.x, bounds_.y, bounds_.x + bounds_.width,
+                const D2D1_RECT_F rect = D2D1::RectF(bounds_.x, bounds_.y + topRuleWidth, bounds_.x + bounds_.width,
                                                      bounds_.y + bounds_.height - ruleWidth);
                 if (backgroundRadius_ > 0.0f)
                     target->FillRoundedRectangle(D2D1::RoundedRect(rect, backgroundRadius_, backgroundRadius_), fill);
                 else
                     target->FillRectangle(rect, fill);
+            }
+        }
+        if (topRuleWidth > 0.0f)
+        {
+            if (ID2D1SolidColorBrush *rule = deviceResources.GetSolidColorBrush(topRuleColor_))
+            {
+                target->FillRectangle(
+                    D2D1::RectF(bounds_.x, bounds_.y, bounds_.x + bounds_.width, bounds_.y + topRuleWidth), rule);
             }
         }
         if (ruleWidth > 0.0f)
@@ -2905,7 +2965,7 @@ void TextBlock::Render(DeviceResources &deviceResources)
     }
 
     const float originX = bounds_.x + textLayoutPadding_.left;
-    const float originY = bounds_.y + textLayoutPadding_.top;
+    const float originY = bounds_.y + TopRuleWidth() + textLayoutPadding_.top;
     if (showCaret_)
     {
         FLOAT caretX = 0.0f;

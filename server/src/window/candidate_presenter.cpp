@@ -823,7 +823,7 @@ void CandidatePresenter::PlaceAndShow(POINT caret, float widthDip, float heightD
     }
     auto properPos = std::make_shared<std::pair<int, int>>();
     // Position the opaque card, not the decoration or drop shadow around it.
-    AdjustCandidateWindowPosition(&caret, {cardWidthDip, cardHeightDip}, properPos, scale, cardWidthDip);
+    AdjustCandidateWindowPosition(&caret, {cardWidthDip, cardHeightDip}, properPos, scale);
     int widthPx = AlignHostPixels((std::max)(1, static_cast<int>(std::ceil(widthDip * scale))));
     int heightPx = AlignHostPixels((std::max)(1, static_cast<int>(std::ceil(heightDip * scale))));
     widthPx = (std::max)(widthPx, lastHostWidthPx_);
@@ -1058,11 +1058,27 @@ void CandidatePresenter::ShowFromGlobalState(POINT caret)
     }
     float cardLeftDip = 0.0f;
     float cardTopDip = 0.0f;
-    if (impl_->card)
-    {
+    float cardHeightDip = 0.0f;
+    auto readCardBounds = [&]() {
+        if (!impl_->card)
+        {
+            return;
+        }
         const msimeui::RectF card = impl_->card->GetBounds();
         cardLeftDip = card.x;
         cardTopDip = card.y;
+        cardHeightDip = card.height;
+    };
+    readCardBounds();
+    // 卡片翻到光标上方时，输入行贴卡片底边（紧贴光标），候选行往上排：离光标最近的是输入内容和
+    // 排在前面的候选，顶上是排在后面的。翻不翻到上方与 AdjustCandidateWindowPosition 用同一套判定，
+    // 行序跟着它走，「窗口在上面」与「输入行在最下面」才会同时成立。行序一换要重新量一遍。
+    const bool aboveCaret = CandidateCardSitsAboveCaret(caret, cardHeightDip, scale.scale);
+    if (impl_->scene.AboveCaret() != aboveCaret)
+    {
+        impl_->scene.SetAboveCaret(aboveCaret);
+        layoutRoot();
+        readCardBounds();
     }
     PlaceAndShow(caret, widthDip, heightDip, cardLeftDip, cardTopDip, scale);
     ::is_global_wnd_cand_shown = true;
