@@ -7,6 +7,7 @@
 #include "window/tray_menu_presenter.h"
 #include "defines/defines.h"
 #include "defines/globals.h"
+#include "log/boot_probe.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -277,11 +278,11 @@ int CreateCandidateWindow(HINSTANCE hInstance)
 
     if (!hwnd_cand)
     {
-#ifdef FANY_DEBUG
-        (void)0;
-#endif
+        // 候选窗建不出来就等于没有候选框，必须留痕：这里失败时上层只会看到一个返回值。
+        BootProbe::Fail("create-candidate-window", GetLastError(), "CreateWindowEx failed");
         return 1;
     }
+    BootProbe::Step("create-candidate-window", "created");
     else
     {
         BOOL disableTransitions = TRUE;

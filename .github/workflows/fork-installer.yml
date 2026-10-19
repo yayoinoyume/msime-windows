@@ -281,6 +281,25 @@ jobs:
           --windows-commit "$env:WINDOWS_COMMIT"
           --output installer/app_data/product-manifest.json
 
+      # fork 包把诊断日志默认打开：候选窗的翻面判定、行序、上下键偏移都记在
+      # 桌面「水杉IME诊断日志.log」里。只改这份 fork 包里的出厂配置，不动仓库里的模板。
+      - name: Enable diagnostic logging in this fork build
+        shell: pwsh
+        run: |
+          $path = 'installer/app_data/config.default.toml'
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "缺少出厂配置：$path"
+          }
+          $text = Get-Content -LiteralPath $path -Raw
+          $text = $text -replace '(?m)^diagnostic_log\s*=\s*false\s*$', 'diagnostic_log = true'
+          $text = $text -replace '(?m)^tsf_diagnostic_log\s*=\s*false\s*$', 'tsf_diagnostic_log = true'
+          $text = $text -replace '(?m)^candidate_window_diagnostic_log\s*=\s*false\s*$', 'candidate_window_diagnostic_log = true'
+          Set-Content -LiteralPath $path -Value $text -NoNewline -Encoding utf8
+          if ($text -notmatch '(?m)^diagnostic_log\s*=\s*true\s*$') {
+            throw '未能打开 diagnostic_log，出厂配置格式可能变了。'
+          }
+          Write-Host 'diagnostic_log / tsf_diagnostic_log / candidate_window_diagnostic_log 已在该包内打开。'
+
       - name: Install the Chinese language file for Inno Setup
         shell: pwsh
         run: ./scripts/ci/install-inno-language.ps1

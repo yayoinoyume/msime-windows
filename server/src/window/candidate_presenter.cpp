@@ -1074,6 +1074,9 @@ void CandidatePresenter::ShowFromGlobalState(POINT caret)
     // 排在前面的候选，顶上是排在后面的。翻不翻到上方与 AdjustCandidateWindowPosition 用同一套判定，
     // 行序跟着它走，「窗口在上面」与「输入行在最下面」才会同时成立。行序一换要重新量一遍。
     const bool aboveCaret = CandidateCardSitsAboveCaret(caret, cardHeightDip, scale.scale);
+    // 翻面判定的输入与结论：候选窗消失/位置不对时，这几行能直接说明是判定算错还是根本没走到这里。
+    CAND_DIAG_LOGF(L"candidate-roworder above={} card_h={:.1f} scale={:.3f} caret=({},{}) scene_above={}", aboveCaret,
+                   cardHeightDip, scale.scale, caret.x, caret.y, impl_->scene.AboveCaret());
     // 工作线程处理上下键时按它取反序号方向。每帧无条件发布：Hide() 会把标记复位，而窗口可能
     // 仍停在同一侧，只在行序变化时发布会让两者对不上。
     Global::candidate_window_above_caret.store(aboveCaret, std::memory_order_release);

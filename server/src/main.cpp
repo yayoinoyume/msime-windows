@@ -1,4 +1,5 @@
 #include "ipc/event_listener.h"
+#include "log/boot_probe.h"
 #include "log/fanylog.h"
 #include "window/ime_windows.h"
 #include <commctrl.h>
@@ -88,18 +89,25 @@ const char *SchemeTypeToString(SchemeType scheme_type)
 int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/, _In_ LPSTR lpCmdLine,
                      _In_ int /*nCmdShow*/)
 {
+    // 探针必须是最早的一步：后面任何一个早期 return 都要能留下痕迹，
+    // 否则「进程没起来」和「起来了但没界面」在日志上无法区分。
+    BootProbe::Begin(lpCmdLine);
     const bool pipe_probe = IsPipeProbe(lpCmdLine);
+    BootProbe::Step("winmain-enter", pipe_probe ? "pipe-probe" : nullptr);
+
     CommonUtils::SingleInstanceGuard single_instance(L"Local\\MetasequoiaImeServer_SingleInstance");
     if (!single_instance.is_valid())
     {
-        (void)0;
+        BootProbe::Fail("single-instance", GetLastError(), "CreateMutex failed");
         return 0;
     }
     if (single_instance.already_running())
     {
-        (void)0;
+        // 已有一个 Server 在跑：TSF 复用那个进程，这里退出是正常路径。
+        BootProbe::Step("single-instance", "already running, exiting");
         return 0;
     }
+    BootProbe::Step("single-instance", "acquired");
 
     if (!pipe_probe)
         StartWatchdogIfNeeded(lpCmdLine);
@@ -109,23 +117,30 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/,
     const HRESULT comResult = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (FAILED(comResult))
     {
-        (void)0;
+        BootProbe::Fail("com-init", static_cast<unsigned long>(comResult));
         return 1;
     }
+    BootProbe::Step("com-init", "ok");
 
     // #ifdef FANY_DEBUG
     // Initialize for logging
     InitializeSpdLog();
     // #endif
+    BootProbe::Step("spdlog-init");
 
     // Initialize config
     InitImeConfig();
+    BootProbe::Step("config-init");
     VoiceInput::Initialize();
     Global::candidate_ui.page_size = GetConfiguredCandidatePageSize();
+    BootProbe::Step("voice-init");
 
     ::InitIpc();
+    BootProbe::Step("ipc-init");
     ::InitNamedPipe();
+    BootProbe::Step("named-pipe-init");
     g_inputSession = CreateInputSessionFromConfig();
+    BootProbe::Step("input-session");
     const std::string configured_backend = DescribeConfiguredInputSessionBackendFromConfig();
     const std::string effective_backend = DescribeEffectiveInputSessionBackendFromConfig();
     const std::string session_summary =
@@ -143,6 +158,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/,
 
         WNDCLASSEX wcex;
         RegisterIMEWindowsClass(wcex, hInstance);
+        BootProbe::Step("window-classes");
     }
 
     //
@@ -212,7 +228,9 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/,
         });
     }
 
+    BootProbe::Step("threads-started");
     int ret = CreateCandidateWindow(hInstance);
+    BootProbe::Step("candidate-window-loop-exit", ret == 0 ? "ok" : "non-zero");
     if (radical_warmup.joinable())
         radical_warmup.join();
 
