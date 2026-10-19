@@ -165,6 +165,23 @@ provider = ""
 [network]
 proxy_mode = "system"
 proxy_server = ""
+
+#
+# Config sync / 配置同步
+#
+# 把本机改过的设置同步到 WebDAV，多台机器共用一份。只同步 [general] [appearance] 这类普通设置；
+# 凭证（token / api_key / 密码等）、词库、模型和 config.base.toml 一律不参与——凭证用 DPAPI
+# 加密且绑定本机本账户，换机器解不开，所以每台机器仍要自己填一次。
+[sync]
+# 打开后按下面的间隔自动双向同步
+enabled = false
+# WebDAV 目录，例如 "https://dav.jianguoyun.com/dav/msime"；文件名自动拼上
+url = ""
+# WebDAV 用户名与密码。密码落盘时自动加密（dpapi:）
+user = ""
+password = ""
+# manual（只在设置页点按钮时同步）/ 5m / 15m / 30m / 60m
+interval = "15m"
 [frequency_adjustment]
 # disabled / pin / halve / linear / promote
 mode = "promote"

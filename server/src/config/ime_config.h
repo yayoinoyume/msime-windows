@@ -199,6 +199,17 @@ struct FrequencyAdjustmentConfig
     int linear_step = 1;
 };
 
+// [sync] 段：把 config.toml 里用户改过的普通键搬到 WebDAV，多台机器共用一份。
+// 凭证键永不参与（见 sync/config_sync.h）；password 与其它凭证一样落盘时加密。
+struct ConfigSyncConfig
+{
+    bool enabled = false;
+    std::string url; // WebDAV 目录，文件和文件名会自动拼上
+    std::string user;
+    std::string password;
+    std::string interval = "15m"; // manual | 5m | 15m | 30m | 60m
+};
+
 void InitImeConfig();
 void InvalidateImeConfigWriteTime();
 void NotifyImeServerConfigChanged();
@@ -722,6 +733,12 @@ bool SetConfiguredNetworkString(const std::string &key, const std::string &value
 // Accepts "host:port" or "http://host:port[/]"; returns the normalized "host:port", or an empty string when the
 // value is not a usable HTTP proxy (other schemes such as socks5:// are rejected: WinHTTP cannot speak them).
 std::string NormalizeNetworkProxyServer(const std::string &value);
+// [sync] 段。password 走与其他凭证相同的 DPAPI 加密，因此读回来就能直接用。
+const ConfigSyncConfig &GetConfiguredConfigSync();
+bool SetConfiguredSyncBool(const std::string &key, bool value);
+bool SetConfiguredSyncString(const std::string &key, const std::string &value);
+std::string GetConfiguredSyncString(const std::string &key);
+bool GetConfiguredSyncEnabled();
 const FrequencyAdjustmentConfig &GetConfiguredFrequencyAdjustment();
 bool SetConfiguredFrequencyAdjustmentString(const std::string &key, const std::string &value);
 bool SetConfiguredFrequencyAdjustmentInt(const std::string &key, int value);

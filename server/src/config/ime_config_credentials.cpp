@@ -33,8 +33,9 @@ namespace ime_config_detail
 // 文件是否损坏，只要用户填过真值就一条都不能丢。
 bool IsCredentialKey(const std::string &key)
 {
-    static const std::set<std::string> exact = {"token",  "api_key",     "apikey",    "secret_id",   "secret_key",
-                                                "app_id", "asr_app_key", "asr_token", "polish_token"};
+    // password 只出现在 [sync] 段（WebDAV 密码），同样不能明文落盘，也永远不参与配置同步。
+    static const std::set<std::string> exact = {"token",  "api_key",  "apikey",      "secret_id", "secret_key",
+                                                "app_id", "password", "asr_app_key", "asr_token", "polish_token"};
     if (exact.count(key) != 0)
     {
         return true;

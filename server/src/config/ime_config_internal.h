@@ -279,6 +279,8 @@ extern NiuTransConfig g_niutrans;
 extern std::string g_translation_provider;
 extern std::mutex g_network_proxy_mutex;
 extern NetworkProxyConfig g_network_proxy; // guarded by g_network_proxy_mutex
+extern std::mutex g_config_sync_mutex;
+extern ConfigSyncConfig g_config_sync; // guarded by g_config_sync_mutex
 extern FrequencyAdjustmentConfig g_frequency_adjustment;
 extern std::filesystem::path g_config_path;
 

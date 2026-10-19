@@ -251,6 +251,8 @@ NiuTransConfig g_niutrans;
 std::string g_translation_provider = "tencent";
 std::mutex g_network_proxy_mutex;
 NetworkProxyConfig g_network_proxy;
+std::mutex g_config_sync_mutex;
+ConfigSyncConfig g_config_sync;
 FrequencyAdjustmentConfig g_frequency_adjustment;
 std::filesystem::path g_config_path;
 } // namespace ime_config_detail
@@ -1049,6 +1051,21 @@ bool LoadImeConfig()
             proxy.server = NormalizeNetworkProxyServer(tbl["network"]["proxy_server"].value_or(std::string()));
             std::lock_guard<std::mutex> proxy_lock(g_network_proxy_mutex);
             g_network_proxy = std::move(proxy);
+        }
+        {
+            // [sync] 段：与 [network] 一样每次加载重建，设置页改完下一次 ReloadImeConfigIfChanged 就生效。
+            ConfigSyncConfig sync;
+            sync.enabled = TomlFlexibleBool(tbl["sync"]["enabled"], false);
+            sync.url = tbl["sync"]["url"].value_or(std::string());
+            sync.user = tbl["sync"]["user"].value_or(std::string());
+            // password 已在 RevealStoredCredentials 里解过密，这里拿到的是明文。
+            sync.password = tbl["sync"]["password"].value_or(std::string());
+            sync.interval = tbl["sync"]["interval"].value_or(std::string("15m"));
+            if (sync.interval != "manual" && sync.interval != "5m" && sync.interval != "15m" &&
+                sync.interval != "30m" && sync.interval != "60m")
+                sync.interval = "15m";
+            std::lock_guard<std::mutex> sync_lock(g_config_sync_mutex);
+            g_config_sync = std::move(sync);
         }
         RememberConfigWriteTime();
         return true;

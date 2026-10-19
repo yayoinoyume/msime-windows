@@ -947,5 +947,62 @@
     "direction": "server",
     "surface": "settings",
     "valid": true
+  },
+  {
+    "name": "config sync request",
+    "message": {
+      "type": "configSyncRequest",
+      "protocolVersion": 1,
+      "data": {
+        "requestId": "sync-1",
+        "action": "auto"
+      }
+    },
+    "direction": "client",
+    "surface": "settings",
+    "valid": true
+  },
+  {
+    "name": "config sync request rejects unknown action",
+    "message": {
+      "type": "configSyncRequest",
+      "data": {
+        "requestId": "sync-1",
+        "action": "uploadEverything"
+      }
+    },
+    "direction": "client",
+    "surface": "settings",
+    "valid": false
+  },
+  {
+    "name": "config sync response",
+    "message": {
+      "type": "configSyncResponse",
+      "protocolVersion": 1,
+      "requestId": "sync-1",
+      "action": "auto",
+      "status": 4,
+      "message": "合并完成",
+      "changedKeys": 3,
+      "conflicts": 0
+    },
+    "direction": "server",
+    "surface": "settings",
+    "valid": true
+  },
+  {
+    "name": "config sync response requires conflicts",
+    "message": {
+      "type": "configSyncResponse",
+      "requestId": "sync-1",
+      "action": "auto",
+      "status": 4,
+      "message": "x",
+      "changedKeys": 0
+    },
+    "direction": "server",
+    "surface": "settings",
+    "valid": false
   }
 ]

@@ -234,6 +234,7 @@ const std::vector<PageInfo> &Pages()
         {"screenkb-settings", L"屏幕键盘", L"sidebar/screen_keyboard.svg", &BuildScreenKeyboardPage},
         {"handwriting-settings", L"手写识别板", L"sidebar/handwriting.svg", &BuildHandwritingPage},
         {"tools-settings", L"实用功能", L"sidebar/utilities.svg", &BuildToolsPage},
+        {"sync-settings", L"配置同步", L"sidebar/sync.svg", &BuildSyncPage},
         {"ai-settings", L"AI 与云联想", L"sidebar/ai.svg", &BuildAiPage},
         {"floating-toolbar", L"悬浮工具栏", L"sidebar/floating_toolbar.svg", &BuildFloatingToolbarPage},
         {"stats", L"统计", L"sidebar/stats.svg", &BuildStatsPage},

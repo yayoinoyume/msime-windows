@@ -115,6 +115,7 @@ VisualPtr BuildVoicePage(PageContext &context);
 VisualPtr BuildScreenKeyboardPage(PageContext &context);
 VisualPtr BuildHandwritingPage(PageContext &context);
 VisualPtr BuildToolsPage(PageContext &context);
+VisualPtr BuildSyncPage(PageContext &context);
 VisualPtr BuildAiPage(PageContext &context);
 VisualPtr BuildFloatingToolbarPage(PageContext &context);
 VisualPtr BuildStatsPage(PageContext &context);

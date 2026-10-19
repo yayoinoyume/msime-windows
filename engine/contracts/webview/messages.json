@@ -918,6 +918,34 @@
           "puncCn"
         ]
       }
+    },
+    "configSyncRequest": {
+      "surfaces": [
+        "settings"
+      ],
+      "data": {
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "upload",
+              "download",
+              "keepLocal",
+              "keepRemote"
+            ]
+          }
+        },
+        "required": [
+          "requestId",
+          "action"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "server": {
@@ -1369,6 +1397,37 @@
         "message"
       ],
       "additionalProperties": true
+    },
+    "configSyncResponse": {
+      "properties": {
+        "requestId": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "changedKeys": {
+          "type": "integer"
+        },
+        "conflicts": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "requestId",
+        "action",
+        "status",
+        "message",
+        "changedKeys",
+        "conflicts"
+      ],
+      "additionalProperties": false
     }
   }
 }

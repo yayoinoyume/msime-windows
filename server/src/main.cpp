@@ -8,6 +8,7 @@
 #include <utility>
 #include "ipc/ipc.h"
 #include "config/ime_config.h"
+#include "sync/config_sync.h"
 #include "clipboard/clipboard_history.h"
 #include <windows.h>
 #include <fmt/xchar.h>
@@ -212,6 +213,9 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/,
         });
     }
 
+    // 配置同步的定时器：常驻 Server 里跑，设置窗口关掉后照样按间隔同步。
+    ConfigSync::StartScheduler();
+
     int ret = CreateCandidateWindow(hInstance);
     if (radical_warmup.joinable())
         radical_warmup.join();
@@ -219,6 +223,7 @@ int CALLBACK WinMain(_In_ HINSTANCE hInstance, _In_ HINSTANCE /*hPrevInstance*/,
     FanyNamedPipe::RegisterStatusSnapshotWindow(nullptr);
 
     EnglishIme::Stop();
+    ConfigSync::StopScheduler();
     CloudTranslation::Stop();
     MixedCandidates::Stop();
     AiAssistant::Stop();

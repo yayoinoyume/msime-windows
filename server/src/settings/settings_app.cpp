@@ -11,6 +11,7 @@
 #include "settings/game_compat_name.h"
 #include "settings/dictionary_manager.h"
 #include "settings/native/native_settings_window.h"
+#include "sync/config_sync.h"
 
 #include "msimeui/DeviceResources.h"
 #include "settings/serial_task_queue.h"
@@ -263,6 +264,7 @@ std::wstring BuildConfigMessage(bool refresh_skin_catalog)
     const NiuTransConfig &niutrans = GetConfiguredNiuTrans();
     const auto translation = GetConfiguredTranslation();
     const NetworkProxyConfig network_proxy = GetConfiguredNetworkProxy();
+    const ConfigSyncConfig config_sync = GetConfiguredConfigSync();
     const FrequencyAdjustmentConfig &frequency = GetConfiguredFrequencyAdjustment();
     const FloatingToolbarItemsConfig &toolbar = GetConfiguredFloatingToolbarItems();
     const std::filesystem::path skins_root = std::filesystem::path(CommonUtils::get_ime_data_path_w()) / L"skins";
@@ -563,6 +565,12 @@ std::wstring BuildConfigMessage(bool refresh_skin_catalog)
           {"niutrans", {{"enabled", niutrans.enabled}, {"app_id", niutrans.app_id}, {"apikey", niutrans.apikey}}},
           {"translation", {{"provider", translation->provider}}},
           {"network", {{"proxy_mode", network_proxy.mode}, {"proxy_server", network_proxy.server}}},
+          {"sync",
+           {{"enabled", config_sync.enabled},
+            {"url", config_sync.url},
+            {"user", config_sync.user},
+            {"password", config_sync.password},
+            {"interval", config_sync.interval}}},
           {"helpcode",
            {{"shuangpin_helpcode", GetConfiguredShuangpinHelpcodeEnabled()},
             {"shuangpin_helpcode_direct", GetConfiguredShuangpinHelpcodeDirect()},
@@ -962,6 +970,22 @@ bool ApplyConfigUpdate(const json::object &data)
         const json::value &value = data.at("value");
         return value.is_string() && SetConfiguredNetworkString(path.substr(std::string("network.").size()),
                                                                json::value_to<std::string>(value));
+    }
+    if (path == "sync.enabled")
+    {
+        // interval / url 改了要立刻重排定时器，否则要等满一个旧间隔才生效。
+        const bool saved = SetConfiguredSyncBool("enabled", json::value_to<bool>(data.at("value")));
+        ConfigSync::NotifySettingsChanged();
+        ConfigSync::StartScheduler();
+        return saved;
+    }
+    if (path.rfind("sync.", 0) == 0)
+    {
+        const json::value &value = data.at("value");
+        const bool saved = value.is_string() && SetConfiguredSyncString(path.substr(std::string("sync.").size()),
+                                                                        json::value_to<std::string>(value));
+        ConfigSync::NotifySettingsChanged();
+        return saved;
     }
     if (path == "helpcode.show_sp_helpcode_in_candidate_window")
         return SetConfiguredShowShuangpinHelpcodeInCandidateWindow(json::value_to<bool>(data.at("value")));
@@ -1523,6 +1547,38 @@ void HandleClientMessage(HWND hwnd, const std::string &raw)
                                         {"protocolVersion", metasequoia::webview::Version}};
                 if (!metasequoia::webview::Validate(response, "server"))
                     throw std::runtime_error("Invalid default IME response");
+                auto serialized = string_to_wstring(json::serialize(response));
+                return [serialized = std::move(serialized)] { PostToPage(serialized); };
+            });
+        }
+        else if (type == "configSyncRequest")
+        {
+            const auto &data = value.at("data").as_object();
+            const std::string request_id = json::value_to<std::string>(data.at("requestId"));
+            const std::string action = json::value_to<std::string>(data.at("action"));
+            // 网络请求不能跑在 UI 线程上：同步一次可能要好几秒。
+            g_worker->Submit([request_id, action]() -> SerialTaskQueue::Completion {
+                ConfigSync::Result result;
+                if (action == "upload")
+                    result = ConfigSync::Run(ConfigSync::Direction::Upload);
+                else if (action == "download")
+                    result = ConfigSync::Run(ConfigSync::Direction::Download);
+                else if (action == "keepLocal")
+                    result = ConfigSync::ResolveConflict(true);
+                else if (action == "keepRemote")
+                    result = ConfigSync::ResolveConflict(false);
+                else
+                    result = ConfigSync::Run(ConfigSync::Direction::Auto);
+                json::value response = {{"type", "configSyncResponse"},
+                                        {"requestId", request_id},
+                                        {"action", action},
+                                        {"status", static_cast<int>(result.status)},
+                                        {"message", result.message},
+                                        {"changedKeys", result.changed_keys},
+                                        {"conflicts", static_cast<int>(ConfigSync::PendingConflict().size())},
+                                        {"protocolVersion", metasequoia::webview::Version}};
+                if (!metasequoia::webview::Validate(response, "server"))
+                    throw std::runtime_error("Invalid config sync response");
                 auto serialized = string_to_wstring(json::serialize(response));
                 return [serialized = std::move(serialized)] { PostToPage(serialized); };
             });

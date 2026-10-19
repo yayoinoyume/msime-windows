@@ -64,7 +64,8 @@ export type ClientMessage =
   | { "type": "openEmojiPanel"; "protocolVersion"?: 1 }
   | { "type": "changeIMEMode"; "protocolVersion"?: 1; "data": "cn" | "en" }
   | { "type": "changeCharMode"; "protocolVersion"?: 1; "data": "fullwidth" | "halfwidth" }
-  | { "type": "changePuncMode"; "protocolVersion"?: 1; "data": "puncEn" | "puncCn" };
+  | { "type": "changePuncMode"; "protocolVersion"?: 1; "data": "puncEn" | "puncCn" }
+  | { "type": "configSyncRequest"; "protocolVersion"?: 1; "data": { "requestId": string; "action": "auto" | "upload" | "download" | "keepLocal" | "keepRemote" } };
 export type ServerMessage =
   | { "type": "configSnapshot"; "protocolVersion"?: 1; "data": { [key: string]: unknown } }
   | { "type": "windowState"; "protocolVersion"?: 1; "data": { "isMaximized": boolean } }
@@ -75,7 +76,8 @@ export type ServerMessage =
   | { "type": "apiModelListResult"; "protocolVersion"?: 1; "requestId": string; "ok": boolean; "message": string; "models"?: Array<string> }
   | { "type": "aiProviderSyncResult"; "protocolVersion"?: 1; "requestId": string; "ok": boolean; "message": string }
   | { "type": "dictionaryResponse"; "protocolVersion"?: 1; "requestId": string; "action"?: string; "dictionary"?: string; "ok": boolean; "message": string; "rows": Array<{ "word": string; "code"?: string; "display"?: string; "weight"?: number }>; "content"?: string; "filename"?: string; "offset"?: number; "hasMore"?: boolean; [key: string]: unknown }
-  | { "type": "statsResponse"; "protocolVersion"?: 1; "requestId": string; "action": string; "ok": boolean; "message": string; "overview"?: { "hasData": boolean; "firstDayKey": number; "lastDayKey": number; "days": number; "totalChars": number; "totalActiveMs": number; "todayDayKey": number; "todayChars": number; "todayActiveMs": number; "averagePerDay": number; "currentStreak": number; "longestStreak": number; "bestDayKey": number; "bestDayChars": number; "todaySpeed": number; "averageSpeed": number; "fastestSpeed": number; "fastestDayKey": number; "todayFirstWordRatio": number | null; "totalFirstWordRatio": number | null; "todayFirstWordTotal": number; "categories": { "cjk": number; "latin": number; "digit": number; "punct": number; "other": number }; "todayHourly": Array<number>; "daily": Array<{ "dayKey": number; "cjk": number; "latin": number; "digit": number; "punct": number; "other": number; "activeMs": number; "firstWordHits": number; "firstWordTotal": number }> }; "removedDays"?: number; [key: string]: unknown };
+  | { "type": "statsResponse"; "protocolVersion"?: 1; "requestId": string; "action": string; "ok": boolean; "message": string; "overview"?: { "hasData": boolean; "firstDayKey": number; "lastDayKey": number; "days": number; "totalChars": number; "totalActiveMs": number; "todayDayKey": number; "todayChars": number; "todayActiveMs": number; "averagePerDay": number; "currentStreak": number; "longestStreak": number; "bestDayKey": number; "bestDayChars": number; "todaySpeed": number; "averageSpeed": number; "fastestSpeed": number; "fastestDayKey": number; "todayFirstWordRatio": number | null; "totalFirstWordRatio": number | null; "todayFirstWordTotal": number; "categories": { "cjk": number; "latin": number; "digit": number; "punct": number; "other": number }; "todayHourly": Array<number>; "daily": Array<{ "dayKey": number; "cjk": number; "latin": number; "digit": number; "punct": number; "other": number; "activeMs": number; "firstWordHits": number; "firstWordTotal": number }> }; "removedDays"?: number; [key: string]: unknown }
+  | { "type": "configSyncResponse"; "protocolVersion"?: 1; "requestId": string; "action": string; "status": number; "message": string; "changedKeys": number; "conflicts": number };
 export type SettingsMessage =
   | { "type": "configRequest"; "protocolVersion"?: 1 }
   | { "type": "skinCatalogRequest"; "protocolVersion"?: 1 }
@@ -108,7 +110,8 @@ export type SettingsMessage =
   | { "type": "statsRequest"; "protocolVersion"?: 1; "data": { "requestId": string; "action": "overview" | "clearAll" | "openDirectory" } }
   | { "type": "defaultImeRequest"; "protocolVersion"?: 1; "data": { "requestId": string; "action": "status" | "setDefault" | "openSystemSettings" } }
   | { "type": "gameCompatRequest"; "protocolVersion"?: 1; "data": { "requestId": string; "action": "status" | "apply"; "enabled"?: boolean; "name"?: string } }
-  | { "type": "openKeyboardPanel"; "protocolVersion"?: 1 };
+  | { "type": "openKeyboardPanel"; "protocolVersion"?: 1 }
+  | { "type": "configSyncRequest"; "protocolVersion"?: 1; "data": { "requestId": string; "action": "auto" | "upload" | "download" | "keepLocal" | "keepRemote" } };
 declare global {
   var MsimeProtocol: {
     validate(message: unknown, direction: 'client' | 'server', surface?: string): boolean;

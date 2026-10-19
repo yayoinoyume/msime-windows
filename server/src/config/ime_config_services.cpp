@@ -471,6 +471,72 @@ bool SetConfiguredNetworkString(const std::string &key, const std::string &value
     return true;
 }
 
+ConfigSyncConfig GetConfiguredConfigSync()
+{
+    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
+    return g_config_sync;
+}
+
+bool GetConfiguredSyncEnabled()
+{
+    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
+    return g_config_sync.enabled;
+}
+
+std::string GetConfiguredSyncString(const std::string &key)
+{
+    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
+    if (key == "url")
+        return g_config_sync.url;
+    if (key == "user")
+        return g_config_sync.user;
+    if (key == "password")
+        return g_config_sync.password;
+    return g_config_sync.interval;
+}
+
+bool SetConfiguredSyncBool(const std::string &key, bool value)
+{
+    if (key != "enabled")
+        return false;
+    if (!WriteConfiguredValue("sync", key, value ? "true" : "false"))
+        return false;
+    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
+    g_config_sync.enabled = value;
+    return true;
+}
+
+bool SetConfiguredSyncString(const std::string &key, const std::string &value)
+{
+    std::string stored = value;
+    if (key == "url")
+    {
+        // 只接受 http(s) WebDAV 目录。空串是合法的「未填写」，用户先关后填。
+        const bool blank = value.find_first_not_of(" \t") == std::string::npos;
+        if (blank)
+            stored.clear();
+        else if (value.rfind("https://", 0) != 0 && value.rfind("http://", 0) != 0)
+            return false;
+    }
+    else if (key == "interval")
+    {
+        if (value != "manual" && value != "5m" && value != "15m" && value != "30m" && value != "60m")
+            return false;
+    }
+    else if (key != "user" && key != "password")
+    {
+        return false;
+    }
+    if (!WriteConfiguredValue("sync", key, EscapeTomlBasicString(stored)))
+        return false;
+    std::lock_guard<std::mutex> lock(g_config_sync_mutex);
+    (key == "url"        ? g_config_sync.url
+     : key == "user"     ? g_config_sync.user
+     : key == "password" ? g_config_sync.password
+                         : g_config_sync.interval) = stored;
+    return true;
+}
+
 // endpoint/model 落盘时只记用户改过的值：留空或等于提供商默认值都写空串，读回时再补默认值，
 // 这样以后调整默认值，没改过的用户能跟着更新，而不是被切换提供商时顺手写进去的旧默认值钉住。
 static std::string AiAssistantDefaultValue(const std::string &key, const std::string &provider)

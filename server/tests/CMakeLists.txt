@@ -84,6 +84,8 @@ set(TEST_SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_user_dictionary_journal.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_config_template_merge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_config_non_ascii_path.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/test_config_sync.cpp"
+    "${CMAKE_SOURCE_DIR}/src/sync/config_sync_merge.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_collocation_model.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_neural_model.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_network_proxy.cpp"
