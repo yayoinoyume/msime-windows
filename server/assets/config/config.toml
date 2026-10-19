@@ -177,11 +177,12 @@ proxy_server = ""
 enabled = false
 # WebDAV 目录，例如 "https://dav.jianguoyun.com/dav/msime"；文件名自动拼上
 url = ""
-# WebDAV 用户名与密码。密码落盘时自动加密（dpapi:）
+# WebDAV 用户名与密码。密码与其他凭证一样加密后才落盘
 user = ""
 password = ""
 # manual（只在设置页点按钮时同步）/ 5m / 15m / 30m / 60m
 interval = "15m"
+
 [frequency_adjustment]
 # disabled / pin / halve / linear / promote
 mode = "promote"

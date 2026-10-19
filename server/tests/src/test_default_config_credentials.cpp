@@ -112,3 +112,15 @@ TEST_CASE(placeholder_credentials_are_rejected_in_every_shipped_spelling)
     REQUIRE(!CloudTranslation::IsUsableSecret("FAKESECRET_q2r3s4t5u6v7w8x9y0z1"));
     REQUIRE(CloudTranslation::IsUsableSecret("AKIDrealLookingSecretId"));
 }
+
+// 出厂模板会被原样拷成用户的 config.toml，所以「整份文件里没有 dpapi:」是凭证确实没被
+// 提前加密的判据（test_config_non_ascii_path 就是这么查的）。注释里写这个前缀同样会命中，
+// 而注释是给人读的说明，很容易顺手写上——这条测试把注释也一起管住。
+TEST_CASE(default_config_has_no_ciphertext_marker_anywhere)
+{
+    std::ifstream file(MSIME_DEFAULT_CONFIG_PATH);
+    REQUIRE(static_cast<bool>(file));
+    const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    REQUIRE(!text.empty());
+    REQUIRE(text.find("dpapi:") == std::string::npos);
+}
