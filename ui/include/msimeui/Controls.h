@@ -728,7 +728,9 @@ class CandidateList : public Visual
     void SetOuterCornersEnabled(bool top, bool bottom);
     void SetOrientation(Orientation orientation);
     // 竖排倒序：第 1 项排在最下面，后面的依次往上。供贴在光标上方展开的列表用：离光标最
-    // 近的一行就是序号最小的候选。命中测试、选中高亮与键盘上下键都跟着倒过来。
+    // 近的一行就是序号最小的候选。绘制与命中测试都经过 ItemRect，所以倒序只有一处来源。
+    // 键盘高亮不经过这里：候选窗是 WS_EX_NOACTIVATE 且不转 WM_KEYDOWN，方向键由 Server 的
+    // move_selection 按序号驱动，序号语义因此不受倒序影响。
     // 横排忽略（换行后左右走向不变，不需要倒序）。
     void SetReverseVertical(bool reverse);
     void SetHoverEnabled(bool enabled);

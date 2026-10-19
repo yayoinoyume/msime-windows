@@ -847,25 +847,15 @@ bool CandidateList::OnKeyDown(WPARAM key, LPARAM lParam)
     }
 
     size_t next = selectedIndex_;
-    // 竖排倒序时画面上「上」是序号更大的方向，方向键要跟着翻。
-    const bool reverseVertical = reverseVertical_ && orientation_ == Orientation::Vertical;
-    const auto previous = [this]() { return selectedIndex_ == 0 ? items_.size() - 1 : selectedIndex_ - 1; };
-    const auto following = [this]() { return selectedIndex_ + 1 >= items_.size() ? 0 : selectedIndex_ + 1; };
     switch (key)
     {
     case VK_UP:
     case VK_LEFT:
-        if (key == VK_LEFT)
-            next = previous();
-        else
-            next = reverseVertical ? following() : previous();
+        next = selectedIndex_ == 0 ? items_.size() - 1 : selectedIndex_ - 1;
         break;
     case VK_DOWN:
     case VK_RIGHT:
-        if (key == VK_RIGHT)
-            next = following();
-        else
-            next = reverseVertical ? previous() : following();
+        next = selectedIndex_ + 1 >= items_.size() ? 0 : selectedIndex_ + 1;
         break;
     case VK_HOME:
         next = 0;
