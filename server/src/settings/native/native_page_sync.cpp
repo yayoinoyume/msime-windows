@@ -86,6 +86,11 @@ VisualPtr NoteCard(const std::wstring &title, const std::wstring &text)
     column->Add(desc);
     return column;
 }
+// 左说明 + 右控件，控件与首行文字对齐（高控件不和整块文字垂直居中）。
+VisualPtr MakeAlignedRow(VisualPtr left, VisualPtr control)
+{
+    return std::make_shared<AlignedRow>(std::move(left), std::move(control));
+}
 } // namespace
 
 VisualPtr BuildSyncPage(PageContext &context)
@@ -192,11 +197,11 @@ VisualPtr BuildSyncPage(PageContext &context)
         column->Add(actions);
         column->Add(status);
         page.AddRaw(std::make_shared<PageCard>(
-                        AlignedRow(TitleWithText(L"手动同步", L"「立即同步」双向合并：云端没有就上传，"
-                                                              L"本机没改过的键跟着云端走，两边都改过的同一个"
-                                                              L"键会停下来问你。上传 / 拉取是单向的，会整份"
-                                                              L"覆盖另一端。"),
-                                   column),
+                        MakeAlignedRow(TitleWithText(L"手动同步", L"「立即同步」双向合并：云端没有就上传，"
+                                                                  L"本机没改过的键跟着云端走，两边都改过的同"
+                                                                  L"一个键会停下来问你。上传 / 拉取是单向的，"
+                                                                  L"会整份覆盖另一端。"),
+                                       column),
                         PageCard::Style::Section, Thickness{24.0f, 20.0f, 24.0f, 20.0f}),
                     18.0f);
     }
