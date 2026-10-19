@@ -5,13 +5,14 @@
 #define NOMINMAX
 #endif
 #include "ai/ai_assistant_request.h"
+#include "ai/ai_candidate_text.h"
 #include "tests/includes/test_framework.h"
 
 namespace
 {
 std::string Candidate(std::string content)
 {
-    return AiAssistant::detail::FirstCandidateText(content);
+    return FirstCandidateText(content);
 }
 } // namespace
 
@@ -40,6 +41,12 @@ TEST_CASE(local_service_parses_bare_text_answer)
     REQUIRE(Candidate("你好\n世界") == "你好");
     // The limit counts characters, not bytes: a UTF-8 Chinese character is three of them.
     REQUIRE(Candidate("中华人民共和国") == "中华人民共和国");
+    // A member that is a bare string rather than an object still carries the candidate.
+    REQUIRE(Candidate(R"({"candidates":["北京"]})") == "北京");
+    // Field order is not guaranteed, so a field before "text" must not defeat the scan.
+    REQUIRE(Candidate(R"({"candidates":[{"type":"chinese","text":"广州"}]})") == "广州");
+    // An unterminated literal is malformed rather than a candidate.
+    REQUIRE(Candidate(R"({"text":"未闭合}")").empty());
 }
 
 TEST_CASE(local_service_declines_rather_than_committing_junk)

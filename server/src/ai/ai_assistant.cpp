@@ -77,7 +77,7 @@ std::string Fetch(const AiAssistant::Request &request, uint64_t generation, Jev:
     {
         // MiniMax M3.1 这类强制思考的模型会把思考过程混进 content（<think>…</think>），
         // 不剥掉的话下面的 JSON 解析直接失败，联想候选就静默消失。
-        return AiAssistant::detail::FirstCandidateText(metasequoia::voice::strip_reasoning(*content));
+        return FirstCandidateText(metasequoia::voice::strip_reasoning(*content));
     }
     catch (const std::exception &)
     {
