@@ -176,16 +176,11 @@ jobs:
         shell: pwsh
         run: cmake --build server/build-release --config Release --parallel
 
+      # 刻意不嵌 uiAccess manifest。uiAccess="true" 的进程必须「有效签名 + 装在受信任位置」
+      # 才能启动；未签名时 Windows 直接拒绝启动 Server（不是降级），现象就是能切输入法、
+      # 但完全没有候选窗。本 workflow 不签名，所以保持构建出来的普通 asInvoker 清单。
+      # 代价：候选窗盖不住提权窗口；普通宿主（记事本、浏览器、Office）不受影响。
       - name: Check the binaries the installer requires
-        shell: pwsh
-        run: ./scripts/ci/check-server-binaries.ps1 -BuildDir server/build-release/bin/Release
-
-      # uiAccess=true 的二进制无法在非交互会话里启动，所以先测普通构建，再注入 manifest。
-      - name: Embed the Server uiAccess manifest
-        shell: pwsh
-        run: ./scripts/ci/embed-server-manifest.ps1 -BuildDir server/build-release/bin/Release
-
-      - name: Verify the embedded Server uiAccess manifest
         shell: pwsh
         run: ./scripts/ci/check-server-binaries.ps1 -BuildDir server/build-release/bin/Release
 
@@ -303,13 +298,14 @@ jobs:
         env:
           TARGET_VERSION: ${{ inputs.product_version }}
         run: |
-          # 产物名由 iss 的 OutputBaseFilename 决定；本 workflow 不签名，所以直接按实际文件名找。
-          $found = @(Get-ChildItem -LiteralPath 'installer/Output' -Filter 'MetasequoiaIME_Setup_v*.exe' -ErrorAction SilentlyContinue)
-          if ($found.Count -ne 1) {
-            throw "installer/Output 下应有且只有一个安装包，实际 $($found.Count) 个：$($found.Name -join ', ')"
+          # 产物名由 iss 的 OutputBaseFilename 决定（Prepare-PackageFiles.ps1 已把
+          # -TargetVersion 写进 MyAppVersion）。本 workflow 不签名，所以不带额外后缀。
+          $name = "MetasequoiaIME_Setup_v$env:TARGET_VERSION.exe"
+          $path = Join-Path 'installer/Output' $name
+          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            $listing = (Get-ChildItem -LiteralPath 'installer/Output' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name) -join ', '
+            throw "找不到 $path；Output 目录内容：$listing"
           }
-          $path = $found[0].FullName
-          $name = $found[0].Name
           $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower()
           $bytes = (Get-Item -LiteralPath $path).Length
           "installer_path=$path" >> $env:GITHUB_OUTPUT
