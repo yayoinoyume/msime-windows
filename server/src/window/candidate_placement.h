@@ -2,7 +2,6 @@
 
 #include "defines/base_structures.h"
 
-#include <algorithm>
 #include <cmath>
 #include <windows.h>
 
@@ -26,7 +25,10 @@ inline bool CandidateFitsBelowCaret(const POINT &caret, double heightDip, FLOAT 
                                     const MonitorCoordinates &coordinates)
 {
     const int edgePadPx = CandidateEdgePadPx(scale);
-    const int topPx = (std::max)(caret.y + CandidateGapBelowCaretPx(scale), coordinates.top + edgePadPx);
+    // POINT::y 是 LONG，与 int 混用 std::max 没有可推导的重载，统一收成 int 再比。
+    const int caretY = static_cast<int>(caret.y);
+    const int belowPx = caretY + CandidateGapBelowCaretPx(scale);
+    const int topPx = belowPx > coordinates.top + edgePadPx ? belowPx : coordinates.top + edgePadPx;
     const int heightPx = static_cast<int>(std::ceil(heightDip * static_cast<double>(scale)));
     return topPx + heightPx <= coordinates.bottom - edgePadPx;
 }
