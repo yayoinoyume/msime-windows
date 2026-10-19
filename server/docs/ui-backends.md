@@ -47,11 +47,12 @@ candidates instead of the last. `CandidateCardSitsAboveCaret` and
 never on one side while its rows are ordered for the other.
 
 `CandidateSkinScene::SetAboveCaret` implements the reversal without rebuilding the scene: the
-preedit row moves to the end of `body_`, `StackPanel::SetBottomUp` anchors the last child to
-the bottom edge, and `CandidateList::SetReverseVertical` mirrors the rows inside the list
-(vertical layout only; horizontal rows already read top to bottom), so candidate 1 is the row
-right above the preedit row and the numbers grow upwards. Hit testing, the selected-row
-highlight and the vertical arrow keys all read the same mirrored geometry.
+preedit row moves to the end of `body_` (the body is measured to its content, so last is also
+bottom-most, and `VerticalAlignment::Trailing` keeps it against the card's bottom edge when a
+sticky card height leaves slack), and `CandidateList::SetReverseVertical` mirrors the rows
+inside the list (vertical layout only; horizontal rows already read top to bottom). Candidate 1
+is therefore the row right above the preedit row and the numbers grow upwards. Hit testing, the
+selected-row highlight and the vertical arrow keys all read the same mirrored geometry.
 
 Paging arrows stay under the list, so above the caret they end up above the list and under the
 preedit row; the vertical expand panel stays below the first row. What mirrors with the row

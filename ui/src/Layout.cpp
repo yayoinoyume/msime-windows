@@ -993,16 +993,6 @@ void StackPanel::SetVerticalContentAlignment(VerticalAlignment alignment)
     verticalContentAlignment_ = alignment;
 }
 
-void StackPanel::SetBottomUp(bool bottomUp)
-{
-    if (bottomUp_ == bottomUp)
-    {
-        return;
-    }
-    bottomUp_ = bottomUp;
-    InvalidateArrange();
-}
-
 SizeF StackPanel::Measure(const SizeF &availableSize)
 {
     measuredChildren_.clear();
@@ -1033,9 +1023,7 @@ void StackPanel::Arrange(const RectF &finalRect)
     bounds_ = finalRect;
     const RectF inner = DeflateRect(finalRect, padding_);
 
-    float cursorY =
-        bottomUp_ ? inner.y + inner.height - measuredContent_.height
-                  : ComputeAlignedStart(inner.y, inner.height, measuredContent_.height, verticalContentAlignment_);
+    float cursorY = ComputeAlignedStart(inner.y, inner.height, measuredContent_.height, verticalContentAlignment_);
     // A child added since the last measure has no measurement yet; it waits for the next pass.
     for (size_t index = 0; index < children_.size() && index < measuredChildren_.size(); ++index)
     {

@@ -544,7 +544,10 @@ void CandidateSkinScene::ApplyRowOrder()
         }
         body_->InsertChild(0, preedit_);
     }
-    body_->SetBottomUp(aboveCaret_);
+    // 卡片高度被上一次输入撑得比内容高时（只增不减），把内容压到卡片底边，否则光标和输入行
+    // 之间会空出一截。上面一行是候选、最下面一行是输入行，正是翻到光标上方时要的样子。
+    body_->SetVerticalAlignment(aboveCaret_ ? msimeui::VerticalAlignment::Trailing
+                                            : msimeui::VerticalAlignment::Leading);
     // 预编辑行与候选之间的间距原本压在它的下外边距上（候选在它下面）；翻到光标上方后候选
     // 跑到它上面，这段间距得跟着换到上侧，否则贴光标的会是一段空白。
     msimeui::Thickness margin = preeditMargin_;

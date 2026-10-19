@@ -209,22 +209,19 @@ TEST_CASE(stack_panel_padding_insets_its_children)
     REQUIRE_NEAR(child->GetBounds().y, 12.0f);
 }
 
-TEST_CASE(bottom_up_stack_panel_anchors_the_last_child_to_the_bottom_edge)
+TEST_CASE(trailing_vertical_content_alignment_keeps_the_last_row_off_the_card_edge)
 {
-    // 候选窗翻到光标上方时用它：预编辑行是最后添加的子元素，它贴底边（也就是贴光标），
-    // 它上方的候选行依次往上堆。
+    // 卡片高度被上一次输入撑得比内容高时，候选窗要靠它把输入行压到卡片底边（贴光标）。
     auto first = MakeFixed(60.0f, 20.0f);
     auto second = MakeFixed(40.0f, 30.0f);
     auto panel = std::make_shared<StackPanel>(8.0f);
     panel->AddChild(first);
     panel->AddChild(second);
-    panel->SetBottomUp(true);
+    panel->SetVerticalAlignment(VerticalAlignment::Trailing);
 
-    const SizeF outer = panel->MeasureInLayout({200.0f, 200.0f});
+    panel->MeasureInLayout({200.0f, 200.0f});
     panel->ArrangeInLayout({0.0f, 0.0f, 200.0f, 100.0f});
 
-    // 测量结果与自上而下时一致，只是落点不同。
-    REQUIRE_NEAR(outer.height, 58.0f);
     REQUIRE_NEAR(second->GetBounds().y, 70.0f);
     REQUIRE_NEAR(first->GetBounds().y, 42.0f);
 }

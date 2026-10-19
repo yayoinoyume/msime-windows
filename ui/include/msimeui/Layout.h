@@ -174,10 +174,6 @@ class StackPanel : public Panel
     void SetSpacing(float spacing);
     void SetHorizontalContentAlignment(HorizontalAlignment alignment);
     void SetVerticalContentAlignment(VerticalAlignment alignment);
-    // 从底部往上排：子元素的声明顺序仍是自上而下，但最后添加的那个贴着面板底边，
-    // 前面的一律往它上方叠。用于贴在光标上方展开、越靠近光标的行越靠下的浮层。
-    // 只改变落点，测量结果与自上而下时完全一致。
-    void SetBottomUp(bool bottomUp);
 
     SizeF Measure(const SizeF &availableSize) override;
     void Arrange(const RectF &finalRect) override;
@@ -187,7 +183,6 @@ class StackPanel : public Panel
     float spacing_ = 0.0f;
     HorizontalAlignment horizontalContentAlignment_ = HorizontalAlignment::Stretch;
     VerticalAlignment verticalContentAlignment_ = VerticalAlignment::Leading;
-    bool bottomUp_ = false;
     std::vector<SizeF> measuredChildren_;
     SizeF measuredContent_ = {};
 };
