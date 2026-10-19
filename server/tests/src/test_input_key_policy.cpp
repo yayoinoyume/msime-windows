@@ -574,3 +574,22 @@ TEST_CASE(temporary_japanese_key_route_excludes_paging_and_word_conversion)
     REQUIRE_EQ(ResolveCompositionCaret(1, "Rko", "ko", true), std::size_t(1));
     REQUIRE_EQ(ResolveCompositionCaret(0, "R", "", true), std::size_t(0));
 }
+
+TEST_CASE(vertical_arrow_offsets_follow_the_candidate_window_side)
+{
+    using namespace FanyImeIpc;
+
+    // 候选窗在光标下方：候选自上而下排，序号越大越靠下。上键 = 上一个候选（序号 -1）。
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyUp, false), -1);
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyDown, false), 1);
+
+    // 翻到光标上方后候选倒序显示：序号 0 贴光标在最下面，序号越大越靠上。上键要让高亮在屏幕上
+    // 往上走，也就是走向序号更大的候选（+1）；下键反过来。
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyUp, true), 1);
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyDown, true), -1);
+
+    // 其它键不动。左右键有自己的路径（横排移高亮在调用方更早的分支里）。
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyLeft, true), 0);
+    REQUIRE_EQ(VerticalArrowSelectionOffset(kVirtualKeyRight, false), 0);
+    REQUIRE_EQ(VerticalArrowSelectionOffset('A', true), 0);
+}

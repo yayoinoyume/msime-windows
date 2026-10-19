@@ -35,6 +35,8 @@ inline std::size_t ResolveCompositionCaret(std::size_t caret, const std::string 
 inline constexpr uint32_t kVirtualKeyShift = 0x10;
 inline constexpr uint32_t kVirtualKeyEscape = 0x1B;
 inline constexpr uint32_t kVirtualKeyBackspace = 0x08;
+inline constexpr uint32_t kVirtualKeyUp = 0x26;
+inline constexpr uint32_t kVirtualKeyDown = 0x28;
 inline constexpr uint32_t kVirtualKeyLeft = 0x25;
 inline constexpr uint32_t kVirtualKeyRight = 0x27;
 inline constexpr uint32_t kVirtualKeyLeftShift = 0xA0;
@@ -356,6 +358,25 @@ constexpr bool ShouldArrowMoveCandidateSelection(uint32_t keycode, bool caret_at
         return true;
     }
     return keycode == kVirtualKeyLeft && selected_index > 0;
+}
+
+// 上下键换算成候选序号偏移。候选窗贴在光标上方时刻意把候选倒序显示：序号 0 落在最下面紧挨
+// 光标，序号越大越靠上，于是「离光标最近的才是首个候选」。但序号语义本身没有跟着变，键盘
+// 高亮又只认序号，按上键会让高亮在屏幕上往下跑。所以上方时把上下键的序号方向取反：
+// 下方上键 = -1（上一个），上方上键 = +1（序号更大 = 视觉往上）。
+// 只处理上下键；调用方把左右键与「横排左右移高亮」的分支放在这个分支之前，这里收到左右键
+// 就返回 0 当作不动。above_caret 由候选窗的定位判定（CandidateCardSitsAboveCaret）发布。
+constexpr int VerticalArrowSelectionOffset(uint32_t keycode, bool above_caret) noexcept
+{
+    if (keycode == kVirtualKeyUp)
+    {
+        return above_caret ? 1 : -1;
+    }
+    if (keycode == kVirtualKeyDown)
+    {
+        return above_caret ? -1 : 1;
+    }
+    return 0;
 }
 
 // A segment Backspace with nothing left before the caret deletes the last

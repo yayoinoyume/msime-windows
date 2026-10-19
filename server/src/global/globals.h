@@ -262,6 +262,9 @@ inline std::atomic<std::uint64_t> rendered_candidate_page_generation{0};
 inline std::atomic<bool> candidate_window_rendered_visible{false};
 // 候选窗的卷轴展开面板是否打开。界面线程写，工作线程发布候选页时据此决定要不要附带后续候选。
 inline std::atomic<bool> candidate_expand_panel_open{false};
+// 候选窗当前是否翻在光标上方（下方放不下时翻上去，内容随之倒序）。界面线程在每次定位前写，
+// 工作线程处理上下键时读：倒序后序号 0 落在最下面，上下键的序号方向要跟着取反。
+inline std::atomic<bool> candidate_window_above_caret{false};
 // Wakes a selection waiting for the render echo the moment it lands. Polling with sleep_for(1ms)
 // sleeps a whole timer tick (~15.6ms by default, worse on battery), which turned a short paint lag
 // into a 30-47ms stall inside the TSF reply budget. The mutex only orders the store against the

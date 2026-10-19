@@ -1823,14 +1823,13 @@ void HandleImeKey(uint64_t client_id, uint64_t activation_epoch, uint64_t reques
         else if (GetConfiguredCandidateArrowNavigationEnabled() &&
                  (Global::Keycode == VK_UP || Global::Keycode == VK_DOWN))
         {
-            if (Global::Keycode == VK_UP)
-            {
-                move_selection(-1, Global::DataFromServerMsgType::MoveSelectionPrevious);
-            }
-            else
-            {
-                move_selection(1, Global::DataFromServerMsgType::MoveSelectionNext);
-            }
+            // 候选窗翻到光标上方时列表是倒序显示的（序号 0 贴光标、序号越大越靠上），
+            // 所以上下键的序号方向要取反，否则按上键高亮会在屏幕上往下跑。
+            // 响应类型跟着序号方向报，别让"上一个"配上一个变大的序号。
+            const bool above_caret = Global::candidate_window_above_caret.load(std::memory_order_acquire);
+            const int offset = FanyImeIpc::VerticalArrowSelectionOffset(Global::Keycode, above_caret);
+            move_selection(offset, offset < 0 ? Global::DataFromServerMsgType::MoveSelectionPrevious
+                                              : Global::DataFromServerMsgType::MoveSelectionNext);
         }
 
         if (IsUiLessMode())

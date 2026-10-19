@@ -1074,6 +1074,9 @@ void CandidatePresenter::ShowFromGlobalState(POINT caret)
     // 排在前面的候选，顶上是排在后面的。翻不翻到上方与 AdjustCandidateWindowPosition 用同一套判定，
     // 行序跟着它走，「窗口在上面」与「输入行在最下面」才会同时成立。行序一换要重新量一遍。
     const bool aboveCaret = CandidateCardSitsAboveCaret(caret, cardHeightDip, scale.scale);
+    // 工作线程处理上下键时按它取反序号方向。每帧无条件发布：Hide() 会把标记复位，而窗口可能
+    // 仍停在同一侧，只在行序变化时发布会让两者对不上。
+    Global::candidate_window_above_caret.store(aboveCaret, std::memory_order_release);
     if (impl_->scene.AboveCaret() != aboveCaret)
     {
         impl_->scene.SetAboveCaret(aboveCaret);
@@ -1133,6 +1136,8 @@ void CandidatePresenter::Hide()
     stickyCardKey_.clear();
     stickyCardWidthDip_ = 0.0f;
     stickyCardHeightDip_ = 0.0f;
+    // 窗口收起来了，方向键回到「下方」语义。留着 true 会让下一次窗口还没显示时的上下键取反。
+    Global::candidate_window_above_caret.store(false, std::memory_order_release);
     SetWindowPos(hwnd_, nullptr, 0, Global::INVALID_Y, 0, 0,
                  SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
 }
