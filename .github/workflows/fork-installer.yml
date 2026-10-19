@@ -300,12 +300,14 @@ jobs:
         run: |
           # 产物名由 iss 的 OutputBaseFilename 决定（Prepare-PackageFiles.ps1 已把
           # -TargetVersion 写进 MyAppVersion）。本 workflow 不签名，所以不带额外后缀。
-          $name = "MetasequoiaIME_Setup_v$env:TARGET_VERSION.exe"
-          $path = Join-Path 'installer/Output' $name
-          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            $listing = (Get-ChildItem -LiteralPath 'installer/Output' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name) -join ', '
-            throw "找不到 $path；Output 目录内容：$listing"
+          # 递归找，别拼路径：ISCC 的 OutputDir 是相对 iss 所在目录的，工作目录一变就找不到。
+          $found = @(Get-ChildItem -LiteralPath '.' -Recurse -File -Filter 'MetasequoiaIME_Setup_v*.exe' -ErrorAction SilentlyContinue)
+          if ($found.Count -ne 1) {
+            $listing = ($found | Select-Object -ExpandProperty FullName) -join ', '
+            throw "应恰好一个安装包，实际 $($found.Count) 个：$listing"
           }
+          $path = $found[0].FullName
+          $name = $found[0].Name
           $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower()
           $bytes = (Get-Item -LiteralPath $path).Length
           "installer_path=$path" >> $env:GITHUB_OUTPUT
