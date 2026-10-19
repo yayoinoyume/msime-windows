@@ -303,12 +303,13 @@ jobs:
         env:
           TARGET_VERSION: ${{ inputs.product_version }}
         run: |
-          $name = "MetasequoiaIME_Setup_v$env:TARGET_VERSION.exe"
-          $path = Join-Path 'installer/Output' $name
-          if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            $found = Get-ChildItem -LiteralPath 'installer/Output' -Filter '*.exe' -ErrorAction SilentlyContinue
-            throw "安装包未按预期命名：$path（实际：$($found.Name -join ', ')）"
+          # 产物名由 iss 的 OutputBaseFilename 决定；本 workflow 不签名，所以直接按实际文件名找。
+          $found = @(Get-ChildItem -LiteralPath 'installer/Output' -Filter 'MetasequoiaIME_Setup_v*.exe' -ErrorAction SilentlyContinue)
+          if ($found.Count -ne 1) {
+            throw "installer/Output 下应有且只有一个安装包，实际 $($found.Count) 个：$($found.Name -join ', ')"
           }
+          $path = $found[0].FullName
+          $name = $found[0].Name
           $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLower()
           $bytes = (Get-Item -LiteralPath $path).Length
           "installer_path=$path" >> $env:GITHUB_OUTPUT
