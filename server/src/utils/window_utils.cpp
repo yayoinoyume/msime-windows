@@ -578,8 +578,9 @@ bool CandidateCardSitsAboveCaret(POINT caret, double cardHeightDip, FLOAT layout
         scale = 1.0f;
     }
     const MonitorCoordinates coordinates = GetMonitorCoordinatesFromPoint(caret);
-    // 竖排时 AdjustCandidateWindowPosition 判翻面用的是「见过的最高列表」，这里跟它走，
-    // 否则「窗口翻到上面」与「内容按上面排」会在列表由短变长的那一帧对不上。
+    // 竖排时 AdjustCandidateWindowPosition 判翻面用的是「见过的最高列表」。这里取同一个 max：
+    // 调用方紧接着用同一个 cardHeightDip 走定位，定位里只会把记忆抬到 max(旧记忆, cardHeightDip)，
+    // 与本式相等，所以「窗口翻到上面」与「内容按上面排」不会在列表由短变长的那一帧对不上。
     const double decisionHeightDip = GetConfiguredCandidateWindowLayout() == "vertical"
                                          ? (std::max)(g_max_vertical_container_height_dip, cardHeightDip)
                                          : cardHeightDip;
