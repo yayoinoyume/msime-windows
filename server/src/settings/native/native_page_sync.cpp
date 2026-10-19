@@ -1,3 +1,4 @@
+#include "settings/native/native_page_dictionary_panel.h"
 #include "settings/native/native_page_help_widgets.h"
 #include "settings/native/native_page_voice_fields.h"
 
@@ -8,6 +9,8 @@
 // partials/sync-settings.html + modules/sync-settings.ts
 namespace native_settings
 {
+using namespace voice_fields;
+
 namespace
 {
 // [sync] 状态码，与 sync/config_sync.h 的 ConfigSync::Status 一一对应。
