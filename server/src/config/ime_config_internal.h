@@ -274,6 +274,7 @@ extern std::shared_mutex g_voice_input_mutex;
 extern VoiceInputConfig g_voice_input;
 extern AiAssistantConfig g_ai_assistant;
 extern TencentTmtConfig g_tencent_tmt;
+extern AliyunMtConfig g_aliyun_mt;
 extern CustomTranslationConfig g_custom_translation;
 extern NiuTransConfig g_niutrans;
 extern std::string g_translation_provider;
@@ -297,7 +298,7 @@ bool IsValidSettingsWindowLinger(const std::string &linger);
 bool IsValidTranslationTargetLanguage(const std::string &language);
 std::string AiAssistantTokenSlotKey(std::string_view provider);
 // ime_config_services.cpp：按当前各段全局配置重建候选词翻译快照。改动 provider、腾讯云、
-// 自定义翻译、小牛翻译或 AI 辅助服务商配置的地方，改完都要调一次。
+// 阿里云、自定义翻译、小牛翻译或 AI 辅助服务商配置的地方，改完都要调一次。
 void PublishTranslationConfig();
 void RememberConfigWriteTime();
 // 记下 ai_providers.json 当前的修改时间。本进程自己保存注册表后调用，免得把自己的写入当成外部变更重载。

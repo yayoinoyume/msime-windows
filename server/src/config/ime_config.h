@@ -148,6 +148,15 @@ struct TencentTmtConfig
     std::string target_language = "en";
 };
 
+struct AliyunMtConfig
+{
+    bool enabled = false;
+    // 控制台「AccessKey 管理」里的 AccessKey ID 与 AccessKey Secret。键名沿用腾讯云那套
+    // （secret_id / secret_key），IsCredentialKey 才会把它们当凭证加密保存。
+    std::string secret_id;
+    std::string secret_key;
+};
+
 struct CustomTranslationConfig
 {
     bool enabled = false;
@@ -166,14 +175,15 @@ struct NiuTransConfig
 };
 
 // 候选词翻译读取的整份配置快照。provider 来自 [translation].provider，旧配置没有这个键时由
-// [tencent_tmt]/[custom_translation]/[niutrans] 的 enabled 布尔在加载时推导；其余字段是各提供方
+// [tencent_tmt]/[aliyun_mt]/[custom_translation]/[niutrans] 的 enabled 布尔在加载时推导；其余字段是各提供方
 // 配置的副本，ai 复用 AI 辅助当前服务商。配置加载和相关设置写入后整份替换，翻译 worker 与
 // 候选线程只读快照，不直接读会被重载改写的各段全局字符串。
 struct TranslationConfig
 {
-    // tencent | niutrans | custom | ai
+    // tencent | aliyun | niutrans | custom | ai
     std::string provider = "tencent";
     TencentTmtConfig tencent;
+    AliyunMtConfig aliyun;
     CustomTranslationConfig custom;
     NiuTransConfig niutrans;
     struct Ai
@@ -710,6 +720,9 @@ bool SetConfiguredTencentTmtString(const std::string &key, const std::string &va
 const CustomTranslationConfig &GetConfiguredCustomTranslation();
 bool SetConfiguredCustomTranslationBool(const std::string &key, bool value);
 bool SetConfiguredCustomTranslationString(const std::string &key, const std::string &value);
+const AliyunMtConfig &GetConfiguredAliyunMt();
+bool SetConfiguredAliyunMtBool(const std::string &key, bool value);
+bool SetConfiguredAliyunMtString(const std::string &key, const std::string &value);
 const NiuTransConfig &GetConfiguredNiuTrans();
 bool SetConfiguredNiuTransBool(const std::string &key, bool value);
 bool SetConfiguredNiuTransString(const std::string &key, const std::string &value);

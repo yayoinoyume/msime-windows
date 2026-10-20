@@ -1334,6 +1334,8 @@ struct InputPage
     {
         if (provider == "ai")
             return {};
+        if (provider == "aliyun")
+            return {{"accessKeyId", Field("aliyunAccessKeyId")}, {"accessKeySecret", Field("aliyunAccessKeySecret")}};
         if (provider == "niutrans")
             return {{"appId", Field("niutransAppId")}, {"apiKey", Field("niutransApiKey")}};
         if (provider == "custom")
@@ -1355,6 +1357,11 @@ struct InputPage
             text = L"请填写以 http:// 或 https:// 开头的完整接口地址";
             static const std::regex url(R"(^https?://\S+$)", std::regex::icase);
             ok = std::regex_match(Field("customTranslationEndpoint"), url);
+        }
+        else if (provider == "aliyun")
+        {
+            text = L"请填写 AccessKey ID 和 AccessKey Secret 后使用阿里云翻译";
+            ok = !Field("aliyunAccessKeyId").empty() && !Field("aliyunAccessKeySecret").empty();
         }
         else if (provider == "niutrans")
         {
@@ -1720,14 +1727,16 @@ VisualPtr BuildInputPage(PageContext &context)
         Dropdown::Options language;
         language.minWidth = 140.0f;
         language.menuMinWidth = 140.0f;
-        auto provider = BindDropdown(
-            context, "translation.provider",
-            Options(
-                {{"tencent", L"腾讯云"}, {"niutrans", L"小牛翻译"}, {"custom", L"自定义 DeepLX"}, {"ai", L"AI 辅助"}}),
-            language, ValueKind::String, [s](const std::string &value) {
-                s->provider = value;
-                s->SyncProviderView();
-            });
+        auto provider = BindDropdown(context, "translation.provider",
+                                     Options({{"tencent", L"腾讯云"},
+                                              {"aliyun", L"阿里云"},
+                                              {"niutrans", L"小牛翻译"},
+                                              {"custom", L"自定义 DeepLX"},
+                                              {"ai", L"AI 辅助"}}),
+                                     language, ValueKind::String, [s](const std::string &value) {
+                                         s->provider = value;
+                                         s->SyncProviderView();
+                                     });
         auto target = BindDropdown(context, "tencent_tmt.target_language",
                                    Options({{"en", L"英语"},
                                             {"fr", L"法语"},
@@ -1776,6 +1785,13 @@ VisualPtr BuildInputPage(PageContext &context)
                      {{field("tencentTmtSecretId", "tencent_tmt.secret_id", L"SecretId", L"AKID...", false), false},
                       {field("tencentTmtSecretKey", "tencent_tmt.secret_key", L"SecretKey", L"SecretKey", true),
                        false}}))});
+        auto aliyun =
+            Col({heading(L"阿里云 API 凭据", L"在阿里云控制台「AccessKey 管理」中查看，凭据仅保存在本机配置文件中"),
+                 blockInput(grid(
+                     {{field("aliyunAccessKeyId", "aliyun_mt.secret_id", L"AccessKey ID", L"LTAI...", false), false},
+                      {field("aliyunAccessKeySecret", "aliyun_mt.secret_key", L"AccessKey Secret", L"AccessKey Secret",
+                             true),
+                       false}}))});
         auto niutrans =
             Col({heading(L"小牛翻译 API 凭据", L"在“控制台—>API应用”中查看，凭据仅保存在本机配置文件中"),
                  blockInput(grid({{field("niutransAppId", "niutrans.app_id", L"APP ID", L"应用唯一标识", false), false},
@@ -1792,6 +1808,7 @@ VisualPtr BuildInputPage(PageContext &context)
             {heading(L"复用 AI 辅助配置", L"使用「AI 与云联想」页当前服务商的接口地址、Token 与模型，无需在此重复填写"),
              blockInput(grid({{s->aiSummary, true}}))});
         s->providerFields["tencent"] = std::make_shared<Hideable>(tencent, true);
+        s->providerFields["aliyun"] = std::make_shared<Hideable>(aliyun, false);
         s->providerFields["niutrans"] = std::make_shared<Hideable>(niutrans, false);
         s->providerFields["custom"] = std::make_shared<Hideable>(custom, false);
         s->providerFields["ai"] = std::make_shared<Hideable>(ai, false);
@@ -1814,13 +1831,13 @@ VisualPtr BuildInputPage(PageContext &context)
                                     s->singleSenseBlock)),
              std::make_shared<Divider>(Divider::Kind::Option),
              blockInput(LanguageRow(L"在线翻译服务",
-                                    L"可使用腾讯云、小牛翻译、自己部署的 DeepLX 兼容接口，或复用 AI 辅助的配置",
+                                    L"可使用腾讯云、阿里云、小牛翻译、自己部署的 DeepLX 兼容接口，或复用 AI 辅助的配置",
                                     provider)),
              std::make_shared<Divider>(Divider::Kind::Option),
              blockInput(LanguageRow(L"目标语种", L"英语优先使用本地词库；本地未命中时使用所选在线服务", target)),
              std::make_shared<Divider>(Divider::Kind::Option), s->providerFields["tencent"],
-             s->providerFields["niutrans"], s->providerFields["custom"], s->providerFields["ai"], s->warningBox,
-             s->credentialTest->View()});
+             s->providerFields["aliyun"], s->providerFields["niutrans"], s->providerFields["custom"],
+             s->providerFields["ai"], s->warningBox, s->credentialTest->View()});
         s->translationOptions = std::make_shared<OpacityBox>(options);
         s->translationOptions->SetMargin({0.0f, 8.0f, 0.0f, 0.0f});
         master->SetOnChanged([s, model](bool on) {
@@ -2082,9 +2099,13 @@ VisualPtr BuildInputPage(PageContext &context)
             s->SetTranslationsEnabled(translations->get<bool>());
         }
         const std::string provider = model->GetString("translation.provider");
-        s->provider = provider == "niutrans" || provider == "custom" || provider == "ai" ? provider : "tencent";
+        s->provider = provider == "aliyun" || provider == "niutrans" || provider == "custom" || provider == "ai"
+                          ? provider
+                          : "tencent";
         s->fields["tencentTmtSecretId"]->SetText(Widen(model->GetString("tencent_tmt.secret_id")));
         s->fields["tencentTmtSecretKey"]->SetText(Widen(model->GetString("tencent_tmt.secret_key")));
+        s->fields["aliyunAccessKeyId"]->SetText(Widen(model->GetString("aliyun_mt.secret_id")));
+        s->fields["aliyunAccessKeySecret"]->SetText(Widen(model->GetString("aliyun_mt.secret_key")));
         s->fields["niutransAppId"]->SetText(Widen(model->GetString("niutrans.app_id")));
         s->fields["niutransApiKey"]->SetText(Widen(model->GetString("niutrans.apikey")));
         s->fields["customTranslationEndpoint"]->SetText(Widen(model->GetString("custom_translation.endpoint")));

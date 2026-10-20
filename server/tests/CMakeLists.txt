@@ -38,6 +38,8 @@ set(TEST_SOURCE_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_jev_candidates.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_niutrans_translation.cpp"
     "${CMAKE_SOURCE_DIR}/src/cloud/niutrans_translation.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/test_aliyun_mt.cpp"
+    "${CMAKE_SOURCE_DIR}/src/cloud/aliyun_mt.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_active_client_state.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_outbound_session_state.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/test_pipe_write_policy.cpp"

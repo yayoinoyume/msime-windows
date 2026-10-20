@@ -534,6 +534,7 @@ TEST_CASE(shipped_credentials_survive_template_upgrade)
     const std::string installed((std::istreambuf_iterator<char>(input)), {});
 
     const std::string configured = "[tencent_tmt]\nsecret_id = \"real-secret-id\"\nsecret_key = \"real-secret-key\"\n"
+                                   "[aliyun_mt]\nsecret_id = \"real-aliyun-id\"\nsecret_key = \"real-aliyun-key\"\n"
                                    "[custom_translation]\napi_key = \"real-api-key\"\n"
                                    "[niutrans]\napp_id = \"real-app-id\"\napikey = \"real-apikey\"\n"
                                    "[voice_input]\nasr_token = \"real-asr\"\nasr_token_doubao = \"real-doubao\"\n"
@@ -545,6 +546,8 @@ TEST_CASE(shipped_credentials_survive_template_upgrade)
         const auto merged = toml::parse(MergeConfigIntoTemplate(installed, configured, baseline));
         REQUIRE_EQ(merged["tencent_tmt"]["secret_id"].value_or(std::string()), std::string("real-secret-id"));
         REQUIRE_EQ(merged["tencent_tmt"]["secret_key"].value_or(std::string()), std::string("real-secret-key"));
+        REQUIRE_EQ(merged["aliyun_mt"]["secret_id"].value_or(std::string()), std::string("real-aliyun-id"));
+        REQUIRE_EQ(merged["aliyun_mt"]["secret_key"].value_or(std::string()), std::string("real-aliyun-key"));
         REQUIRE_EQ(merged["custom_translation"]["api_key"].value_or(std::string()), std::string("real-api-key"));
         REQUIRE_EQ(merged["niutrans"]["app_id"].value_or(std::string()), std::string("real-app-id"));
         REQUIRE_EQ(merged["niutrans"]["apikey"].value_or(std::string()), std::string("real-apikey"));

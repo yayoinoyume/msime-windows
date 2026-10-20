@@ -324,6 +324,30 @@ bool SetConfiguredCustomTranslationString(const std::string &key, const std::str
     return true;
 }
 
+const AliyunMtConfig &GetConfiguredAliyunMt()
+{
+    return g_aliyun_mt;
+}
+
+bool SetConfiguredAliyunMtBool(const std::string &key, bool value)
+{
+    return key == "enabled" && SetTranslationProviderFromLegacyBool("aliyun", value);
+}
+
+bool SetConfiguredAliyunMtString(const std::string &key, const std::string &value)
+{
+    std::string *target = nullptr;
+    if (key == "secret_id")
+        target = &g_aliyun_mt.secret_id;
+    else if (key == "secret_key")
+        target = &g_aliyun_mt.secret_key;
+    if (!target || !WriteConfiguredValue("aliyun_mt", key, EscapeTomlBasicString(value)))
+        return false;
+    *target = value;
+    PublishTranslationConfig();
+    return true;
+}
+
 const NiuTransConfig &GetConfiguredNiuTrans()
 {
     return g_niutrans;
@@ -350,7 +374,8 @@ bool SetConfiguredNiuTransString(const std::string &key, const std::string &valu
 
 bool IsValidTranslationProvider(const std::string &provider)
 {
-    return provider == "tencent" || provider == "niutrans" || provider == "custom" || provider == "ai";
+    return provider == "tencent" || provider == "aliyun" || provider == "niutrans" || provider == "custom" ||
+           provider == "ai";
 }
 
 namespace
@@ -364,6 +389,7 @@ void ime_config_detail::PublishTranslationConfig()
     auto snapshot = std::make_shared<TranslationConfig>();
     snapshot->provider = g_translation_provider;
     snapshot->tencent = g_tencent_tmt;
+    snapshot->aliyun = g_aliyun_mt;
     snapshot->custom = g_custom_translation;
     snapshot->niutrans = g_niutrans;
     snapshot->ai = {g_ai_assistant.provider, g_ai_assistant.endpoint, g_ai_assistant.token, g_ai_assistant.model};
@@ -381,18 +407,21 @@ bool SetConfiguredTranslationString(const std::string &key, const std::string &v
 {
     if (key != "provider" || !IsValidTranslationProvider(value))
         return false;
-    // 旧布尔与 provider 一次写入，保证降级到旧版时选择不丢；旧版不认识 ai，三个布尔都关，
-    // 不会把候选词发给用户没选的服务。
+    // 旧布尔与 provider 一次写入，保证降级到旧版时选择不丢；旧版不认识 ai / aliyun，那几个布尔
+    // 都关，不会把候选词发给用户没选的服务。
     const bool tencent = value == "tencent";
+    const bool aliyun = value == "aliyun";
     const bool niutrans = value == "niutrans";
     const bool custom = value == "custom";
     if (!WriteConfiguredValues({{"translation", key, EscapeTomlBasicString(value)},
                                 {"tencent_tmt", "enabled", tencent ? "true" : "false"},
+                                {"aliyun_mt", "enabled", aliyun ? "true" : "false"},
                                 {"niutrans", "enabled", niutrans ? "true" : "false"},
                                 {"custom_translation", "enabled", custom ? "true" : "false"}}))
         return false;
     g_translation_provider = value;
     g_tencent_tmt.enabled = tencent;
+    g_aliyun_mt.enabled = aliyun;
     g_niutrans.enabled = niutrans;
     g_custom_translation.enabled = custom;
     PublishTranslationConfig();

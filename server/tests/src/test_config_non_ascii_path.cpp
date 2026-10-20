@@ -647,12 +647,22 @@ TEST_CASE(translation_provider_migrates_from_legacy_enabled_flags)
         REQUIRE(SetConfiguredAiAssistantString("model", "translation-model"));
         REQUIRE_EQ(GetConfiguredTranslation()->ai.model, std::string("translation-model"));
 
+        // 切到阿里云：provider 与快照里的凭据一起更新，旧布尔同步写回 false。
+        REQUIRE(SetConfiguredAliyunMtString("secret_id", "LTAIlegacy"));
+        REQUIRE(SetConfiguredTranslationString("provider", "aliyun"));
+        InitImeConfig();
+        REQUIRE_EQ(GetConfiguredTranslation()->provider, std::string("aliyun"));
+        REQUIRE(GetConfiguredAliyunMt().enabled);
+        REQUIRE(!GetConfiguredNiuTrans().enabled);
+        REQUIRE_EQ(GetConfiguredTranslation()->aliyun.secret_id, std::string("LTAIlegacy"));
+
         // 切到自定义 DeepLX：布尔随之更新。
         REQUIRE(SetConfiguredTranslationString("provider", "custom"));
         InitImeConfig();
         REQUIRE_EQ(GetConfiguredTranslation()->provider, std::string("custom"));
         REQUIRE(GetConfiguredCustomTranslation().enabled);
         REQUIRE(!GetConfiguredNiuTrans().enabled);
+        REQUIRE(!GetConfiguredAliyunMt().enabled);
 
         // 旧的 enabled 开关改为切换 provider；关掉当前服务回落到腾讯云，并显式打开腾讯云门禁。
         REQUIRE(SetConfiguredNiuTransBool("enabled", true));

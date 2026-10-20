@@ -2,6 +2,7 @@
 
 #include "config/ime_config.h"
 #include "ai_translation.h"
+#include "aliyun_mt.h"
 #include "custom_translation.h"
 #include "niutrans_translation.h"
 #include "tencent_tmt.h"
@@ -54,6 +55,7 @@ std::string TargetLanguage(const TranslationConfig &config)
 enum class Provider
 {
     Tencent,
+    Aliyun,
     Custom,
     NiuTrans,
     Ai,
@@ -66,6 +68,8 @@ Provider ActiveProvider(const TranslationConfig &config)
         return Provider::Ai;
     if (config.provider == "niutrans")
         return Provider::NiuTrans;
+    if (config.provider == "aliyun")
+        return Provider::Aliyun;
     if (config.provider == "custom")
         return Provider::Custom;
     return Provider::Tencent;
@@ -77,6 +81,10 @@ std::string ProviderScope(const TranslationConfig &config)
     {
     case Provider::Ai:
         return "ai:" + config.ai.provider + ":" + config.ai.endpoint + ":" + config.ai.model;
+    case Provider::Aliyun:
+        // 阿里云没有独立的应用 id，缓存域只能按 AccessKey ID 区分：换密钥即换域，
+        // 和腾讯云只写固定串不同。
+        return "aliyun:" + config.aliyun.secret_id;
     case Provider::NiuTrans:
         return "niutrans:" + config.niutrans.app_id;
     case Provider::Custom:
@@ -144,6 +152,7 @@ struct ResolvedProvider
 {
     Provider provider = Provider::Tencent;
     TencentTmt::Credentials tencent;
+    AliyunMt::Credentials aliyun;
     CustomTranslation::Config custom;
     NiuTransTranslation::Config niutrans;
     AiTranslation::Config ai;
@@ -160,6 +169,12 @@ std::optional<ResolvedProvider> ResolveActiveProvider(const TranslationConfig &c
         // 用户可能只想用翻译、不开 AI 联想。
         resolved.ai = AiTranslation::FromConfiguredTranslation(config);
         if (!AiTranslation::IsUsableConfig(resolved.ai))
+            return std::nullopt;
+        break;
+    case Provider::Aliyun:
+        resolved.aliyun = {CloudTranslation::TrimSecret(config.aliyun.secret_id),
+                           CloudTranslation::TrimSecret(config.aliyun.secret_key)};
+        if (!AliyunMt::IsUsableCredentials(resolved.aliyun))
             return std::nullopt;
         break;
     case Provider::NiuTrans:
@@ -224,6 +239,8 @@ std::vector<std::string> TranslateWithProvider(const ResolvedProvider &resolved,
     {
     case Provider::Ai:
         return AiTranslation::TextTranslateBatch(resolved.ai, texts, source, target);
+    case Provider::Aliyun:
+        return AliyunMt::TextTranslateBatch(resolved.aliyun, texts, source, target);
     case Provider::NiuTrans:
         return NiuTransTranslation::TextTranslateBatch(resolved.niutrans, texts, source, target);
     case Provider::Custom:

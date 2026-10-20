@@ -131,6 +131,16 @@ region = "ap-guangzhou"
 target_language = "en"
 
 #
+# 阿里云机器翻译（通用版 GetBatchTranslate）。secret_id / secret_key 填控制台
+# 「AccessKey 管理」里的 AccessKey ID 与 AccessKey Secret。
+# enabled 布尔仅为旧版兼容保留，实际生效方由 [translation].provider 决定。
+#
+[aliyun_mt]
+enabled = false
+secret_id = ""
+secret_key = ""
+
+#
 # 自定义 DeepLX 兼容翻译服务。endpoint 必须填写完整的 POST 接口地址。
 # api_key 留空时不发送 Authorization 请求头。
 #
@@ -149,9 +159,9 @@ app_id = ""
 apikey = ""
 
 #
-# 候选词翻译当前生效的在线提供方：tencent | niutrans | custom | ai。
+# 候选词翻译当前生效的在线提供方：tencent | aliyun | niutrans | custom | ai。
 # ai 表示复用 AI 辅助当前服务商的接口地址、Token 与模型。
-# 留空表示按 [tencent_tmt]/[custom_translation]/[niutrans] 的旧 enabled 布尔自动推导，
+# 留空表示按 [tencent_tmt]/[aliyun_mt]/[custom_translation]/[niutrans] 的旧 enabled 布尔自动推导，
 # 在设置页选择过一次后会写入具体值。
 #
 [translation]

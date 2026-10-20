@@ -3,6 +3,7 @@
 #include "api_credential_test_request.h"
 
 #include "cloud/ai_translation.h"
+#include "cloud/aliyun_mt.h"
 #include "cloud/custom_translation.h"
 #include "cloud/niutrans_translation.h"
 #include "cloud/tencent_tmt.h"
@@ -278,6 +279,13 @@ ApiCredentialTest::Result TestTranslation(const ApiCredentialTest::Request &requ
             !CloudTranslation::IsUsableSecret(credentials.secret_key))
             return {false, "请先填写有效的 SecretId 和 SecretKey。"};
         translated = TencentTmt::TextTranslateBatch(credentials, {"测试"}, "zh", "en");
+    }
+    else if (request.service == "translation.aliyun")
+    {
+        const AliyunMt::Credentials credentials{Value(request, "accessKeyId"), Value(request, "accessKeySecret")};
+        if (!AliyunMt::IsUsableCredentials(credentials))
+            return {false, "请先填写有效的 AccessKey ID 和 AccessKey Secret。"};
+        translated = AliyunMt::TextTranslateBatch(credentials, {"测试"}, "zh", "en");
     }
     else if (request.service == "translation.niutrans")
     {
