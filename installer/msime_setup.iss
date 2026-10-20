@@ -718,9 +718,9 @@ begin
       '现有数据将从这里迁移：' + NewLine + Space + ResolvePreviousDataDir;
 end;
 
-{ 本进程能直接访问的 TSF 根目录。
-  32 位安装模式下 {sys} 展开成 SysWOW64，而 x64 DLL 要装进真正的 System32，
-  所以那种情况下改用 {sysnative}；64 位安装模式下它不可用，直接展开 {sys}。}
+// 本进程能直接访问的 TSF 根目录。32 位安装模式下 sys 常量展开成 SysWOW64，
+// 而 x64 DLL 要装进真正的 System32，所以那种情况下改用 sysnative；
+// 64 位安装模式下 sysnative 不可用，直接展开 sys。
 function TsfRoot64: String;
 begin
   if IsWin64 and not Is64BitInstallMode then
