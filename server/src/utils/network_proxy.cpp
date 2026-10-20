@@ -17,7 +17,7 @@ namespace
 constexpr const char *kLoopbackHosts[] = {"localhost", "127.0.0.1", "::1"};
 constexpr char kCurlNoProxy[] = "localhost,127.0.0.1,::1";
 
-// scheme://[user[:pass]@]host[:port]/path → host，取不出来返回空串。
+// scheme://host[:port]/path → host，取不出来返回空串。
 std::string HostOfEndpoint(const std::string &endpoint)
 {
     const std::string scheme = "://";
@@ -29,9 +29,6 @@ std::string HostOfEndpoint(const std::string &endpoint)
     const size_t at_path = rest.find('/');
     if (at_path != std::string::npos)
         rest = rest.substr(0, at_path);
-    const size_t at_userinfo = rest.rfind('@');
-    if (at_userinfo != std::string::npos)
-        rest = rest.substr(at_userinfo + 1);
     if (!rest.empty() && rest.front() == '[')
     {
         const size_t close = rest.find(']');
