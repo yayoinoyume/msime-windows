@@ -338,7 +338,7 @@ jobs:
           - 文件：``$env:NAME``
           - SHA256：``$env:SHA256``
           - 大小：$env:BYTES 字节
-          - 签名：**未签名**（`-unsigned`）。`uiAccess` 不生效，候选窗盖不住提权窗口；行序与上下键行为与签名版一致。
+          - 签名：**未签名**（``-unsigned``）。``uiAccess`` 不生效，候选窗盖不住提权窗口；行序与上下键行为与签名版一致。
 
           下载：本 run 页面底部 Artifacts → ``MetasequoiaIME-fork-installer``。
           "@ >> $env:GITHUB_STEP_SUMMARY
