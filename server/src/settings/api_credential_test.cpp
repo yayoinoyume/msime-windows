@@ -65,9 +65,13 @@ bool IsHttpEndpoint(const std::string &endpoint)
 }
 
 // 与 AiTranslation::IsUsableConfig 同一个判据，测试结果才不会和运行时相反。
-bool CredentialSatisfied(const std::string &endpoint, const std::string &token)
+// 只对 AI 辅助放开：ASR 与润色的运行时仍要求 Token，这里放行会让测试显示成功而功能不动。
+bool CredentialSatisfied(const ApiCredentialTest::Request &request)
 {
-    return NetworkProxy::IsLoopbackEndpoint(endpoint) || CloudTranslation::IsUsableSecret(token);
+    const std::string token = Value(request, "token");
+    if (request.service != "ai.assistant")
+        return CloudTranslation::IsUsableSecret(token);
+    return NetworkProxy::IsLoopbackEndpoint(Value(request, "endpoint")) || CloudTranslation::IsUsableSecret(token);
 }
 
 std::string ErrorDetail(const HttpResponse &response)
@@ -168,7 +172,7 @@ ApiCredentialTest::Result TestChat(const ApiCredentialTest::Request &request)
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
     const std::string model = Value(request, "model");
-    if (!CredentialSatisfied(endpoint, token))
+    if (!CredentialSatisfied(request))
         return {false, "请先填写有效的 API Key（本机服务可留空）。"};
     if (!IsHttpEndpoint(endpoint) || model.empty())
         return {false, "请填写有效的 HTTP 接口地址和模型名。"};
@@ -219,8 +223,8 @@ ApiCredentialTest::Result TestBatchAsr(const ApiCredentialTest::Request &request
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
     const std::string model = Value(request, "model");
-    if (!CredentialSatisfied(endpoint, token))
-        return {false, "请先填写有效的 API Key（本机服务可留空）。"};
+    if (!CloudTranslation::IsUsableSecret(token))
+        return {false, "请先填写有效的 API Key。"};
     if (!IsHttpEndpoint(endpoint) || model.empty())
         return {false, "请填写有效的 HTTP 接口地址和模型名。"};
 
@@ -350,7 +354,7 @@ ModelListResult FetchModels(const Request &request)
         return {false, "不支持的模型列表类型。", {}};
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
-    if (!CredentialSatisfied(endpoint, token))
+    if (!CredentialSatisfied(request))
         return {false, "请先填写有效的 API Key（本机服务可留空）。", {}};
     if (!IsHttpEndpoint(endpoint))
         return {false, "请先填写以 http:// 或 https:// 开头的接口地址。", {}};

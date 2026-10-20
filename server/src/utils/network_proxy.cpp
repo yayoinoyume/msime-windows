@@ -3,6 +3,7 @@
 #include "config/ime_config.h"
 
 #include <cwctype>
+#include <string>
 
 #pragma comment(lib, "winhttp.lib")
 
@@ -12,24 +13,9 @@ namespace
 {
 
 // 本机地址永远直连：自建的翻译/大模型服务常跑在 localhost，让它们绕回代理只会失败。
-// 同一份表也是「本机服务免 API 凭据」的判据（见 IsLoopbackEndpoint）。
+// IsLoopbackEndpoint 用同一份主机名判「本机服务免 API 凭据」，改这里记得跟着改。
 constexpr const char *kLoopbackHosts[] = {"localhost", "127.0.0.1", "::1"};
-
-// libcurl 要的逗号分隔串，每次请求都会走，拼一次缓存下来。
-const std::string &CurlNoProxyList()
-{
-    static const std::string list = [] {
-        std::string built;
-        for (const char *host : kLoopbackHosts)
-        {
-            if (!built.empty())
-                built += ',';
-            built += host;
-        }
-        return built;
-    }();
-    return list;
-}
+constexpr char kCurlNoProxy[] = "localhost,127.0.0.1,::1";
 
 // scheme://[user[:pass]@]host[:port]/path → host，取不出来返回空串。
 std::string HostOfEndpoint(const std::string &endpoint)
@@ -144,8 +130,9 @@ std::string PickHttpsProxyFromWindowsList(const std::wstring &proxy_list)
     return https.empty() ? http : https;
 }
 
-// 端点是否跑在本机：本机服务（Ollama 等）不要求 API 凭据。局域网不算——那可能是公司内网
-// 或共享机器，是否免鉴权该由用户明示；取不出主机名时按「不是本机」处理。
+// 端点是否跑在本机：本机服务（Ollama 等）不要求 API 凭据。主机名与上面给 libcurl 的
+// no-proxy 表严格一致——局域网与 127/8 里的其他地址都算远端：前者可能是公司内网或共享
+// 机器，后者会让请求绕过本该生效的代理，是否免鉴权该由用户明示。
 bool IsLoopbackEndpoint(const std::string &endpoint)
 {
     std::string host = HostOfEndpoint(endpoint);
@@ -162,8 +149,7 @@ bool IsLoopbackEndpoint(const std::string &endpoint)
         if (host == candidate)
             return true;
     }
-    // 127.0.0.1 以外的整个 127/8 都指向本机（RFC 1122）。
-    return host.rfind("127.", 0) == 0;
+    return false;
 }
 
 HINTERNET OpenWinHttpSession(const wchar_t *user_agent)
@@ -199,7 +185,7 @@ void ApplyToCurl(CURL *curl)
         return; // 系统没设静态代理：保持 libcurl 默认（直连，或沿用环境变量）。
     const std::string url = "http://" + server;
     curl_easy_setopt(curl, CURLOPT_PROXY, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_NOPROXY, CurlNoProxyList().c_str());
+    curl_easy_setopt(curl, CURLOPT_NOPROXY, kCurlNoProxy);
 }
 
 } // namespace NetworkProxy

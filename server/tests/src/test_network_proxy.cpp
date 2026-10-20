@@ -53,7 +53,6 @@ TEST_CASE(network_proxy_loopback_endpoint_skips_credential_requirement)
     // 本机自建的大模型服务（Ollama 默认就在 11434）没有 Key 可填。
     REQUIRE(IsLoopbackEndpoint("http://localhost:11434/v1/chat/completions"));
     REQUIRE(IsLoopbackEndpoint("http://127.0.0.1:11434/v1/chat/completions"));
-    REQUIRE(IsLoopbackEndpoint("http://127.0.0.2:11434/v1/chat/completions")); // 整个 127/8
     REQUIRE(IsLoopbackEndpoint("https://localhost/v1/chat/completions"));
     // IPv6 字面量与大小写不敏感。
     REQUIRE(IsLoopbackEndpoint("http://[::1]:11434/v1/chat/completions"));
@@ -67,4 +66,10 @@ TEST_CASE(network_proxy_loopback_endpoint_skips_credential_requirement)
     REQUIRE(!IsLoopbackEndpoint("http://nas.local:11434/v1/chat/completions"));
     REQUIRE(!IsLoopbackEndpoint("localhost:11434"));
     REQUIRE(!IsLoopbackEndpoint(""));
+
+    // 域名同样能以 127. 开头，但那是解析到别处的公网主机，不能免凭据。
+    REQUIRE(!IsLoopbackEndpoint("http://127.attacker.com/v1/chat/completions"));
+    REQUIRE(!IsLoopbackEndpoint("http://127.evil.io/x"));
+    // 127/8 里的其他地址不走 no-proxy，请求会绕进代理，这里也不免凭据，两边保持一致。
+    REQUIRE(!IsLoopbackEndpoint("http://127.0.0.2:11434/v1/chat/completions"));
 }

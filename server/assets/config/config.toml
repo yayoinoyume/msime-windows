@@ -597,6 +597,8 @@ endpoint_deepseek = ""
 endpoint_openai = ""
 endpoint_siliconflow = ""
 endpoint_groq = ""
+# custom 槽位可填任意 OpenAI 兼容服务。接本机 Ollama 时填 http://localhost:11434/v1/chat/completions，
+# 模型名用 `ollama list` 里的名字，token_custom 留空即可（本机地址不校验 Key）
 endpoint_custom = ""
 endpoint_minimax = ""
 endpoint_moonshot = ""

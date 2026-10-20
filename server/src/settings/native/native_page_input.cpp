@@ -1,5 +1,7 @@
 #include "settings/native/native_settings_pages.h"
 
+#include "utils/network_proxy.h"
+
 #include "msimeui/DeviceResources.h"
 #include "msimeui/Fonts.h"
 #include "msimeui/Window.h"
@@ -1315,7 +1317,9 @@ struct InputPage
         const std::string t = trim(state["token"]);
         const bool placeholder = (!t.empty() && t.front() == '<' && t.back() == '>') || t.rfind("FAKESECRET_", 0) == 0;
         const std::string endpoint = trim(state["endpoint"]);
-        return !t.empty() && !placeholder && !trim(state["model"]).empty() &&
+        // 本机自建的服务没有 Key 可填，判据与运行时一致。
+        const bool credential_ok = NetworkProxy::IsLoopbackEndpoint(endpoint) || (!t.empty() && !placeholder);
+        return credential_ok && !trim(state["model"]).empty() &&
                (endpoint.rfind("http://", 0) == 0 || endpoint.rfind("https://", 0) == 0);
     }
 
