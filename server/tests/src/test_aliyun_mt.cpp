@@ -90,8 +90,13 @@ TEST_CASE(AliyunIgnoresFailedItemsAndMalformedResponses)
     const auto out_of_range =
         AliyunMt::ParseBatchResponse(R"({"TranslatedList":[{"code":"200","index":"9","translated":"x"}]})", 1);
     REQUIRE(out_of_range[0].empty());
-    REQUIRE(AliyunMt::ParseBatchResponse(R"({"Code":200,"Message":"success"})", 2).empty());
-    REQUIRE(AliyunMt::ParseBatchResponse("not json", 2)[0].empty());
+    // 返回值长度恒等于 count（调用方按下标回填），失败项留空，所以这里查每一项都空。
+    const auto no_list = AliyunMt::ParseBatchResponse(R"({"Code":200,"Message":"success"})", 2);
+    REQUIRE_EQ(no_list.size(), size_t(2));
+    REQUIRE(no_list[0].empty() && no_list[1].empty());
+    const auto not_json = AliyunMt::ParseBatchResponse("not json", 2);
+    REQUIRE_EQ(not_json.size(), size_t(2));
+    REQUIRE(not_json[0].empty() && not_json[1].empty());
 
     // 整体失败时即使带着 TranslatedList 也要整批作废：错误响应的 code 不可信，
     // 不能把里面的文案当译文显示出来。
