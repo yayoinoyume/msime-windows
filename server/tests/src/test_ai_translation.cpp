@@ -31,7 +31,6 @@ TEST_CASE(AiTranslationValidatesConfig)
         REQUIRE(!AiTranslation::IsUsableConfig(fake));
     }
 
-    // 本机服务没有 Key 可填；本机豁免只免凭据，模型名仍必填；局域网不豁免。
     AiTranslation::Config local = valid;
     local.endpoint = "http://localhost:11434/v1/chat/completions";
     local.token = "";

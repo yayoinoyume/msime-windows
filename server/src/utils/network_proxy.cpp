@@ -25,7 +25,6 @@ std::string HostOfEndpoint(const std::string &endpoint)
     if (at_scheme == std::string::npos)
         return {};
     std::string rest = endpoint.substr(at_scheme + scheme.size());
-    // IPv6 字面量带方括号，方括号里不含 '/'，先按路径切不会切坏。
     const size_t at_path = rest.find('/');
     if (at_path != std::string::npos)
         rest = rest.substr(0, at_path);
