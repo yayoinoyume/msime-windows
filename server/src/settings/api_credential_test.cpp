@@ -64,6 +64,12 @@ bool IsHttpEndpoint(const std::string &endpoint)
     return endpoint.rfind("https://", 0) == 0 || endpoint.rfind("http://", 0) == 0;
 }
 
+// 与 AiTranslation::IsUsableConfig 同一个判据，测试结果才不会和运行时相反。
+bool CredentialSatisfied(const std::string &endpoint, const std::string &token)
+{
+    return NetworkProxy::IsLoopbackEndpoint(endpoint) || CloudTranslation::IsUsableSecret(token);
+}
+
 std::string ErrorDetail(const HttpResponse &response)
 {
     if (response.code != CURLE_OK)
@@ -162,10 +168,10 @@ ApiCredentialTest::Result TestChat(const ApiCredentialTest::Request &request)
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
     const std::string model = Value(request, "model");
-    if (!CloudTranslation::IsUsableSecret(token))
-        return {false, "请先填写有效的 API Key。"};
+    if (!CredentialSatisfied(endpoint, token))
+        return {false, "请先填写有效的 API Key（本机服务可留空）。"};
     if (!IsHttpEndpoint(endpoint) || model.empty())
-        return {false, "请填写有效的 HTTPS 接口地址和模型名。"};
+        return {false, "请填写有效的 HTTP 接口地址和模型名。"};
     const std::string provider = Value(request, "provider");
     const std::string payload = ApiCredentialTest::detail::BuildChatProbeRequestBody(provider, model, endpoint).dump();
     const HttpResponse response = PerformJsonRequest(endpoint, token, &payload);
@@ -213,10 +219,10 @@ ApiCredentialTest::Result TestBatchAsr(const ApiCredentialTest::Request &request
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
     const std::string model = Value(request, "model");
-    if (!CloudTranslation::IsUsableSecret(token))
-        return {false, "请先填写有效的 API Key。"};
+    if (!CredentialSatisfied(endpoint, token))
+        return {false, "请先填写有效的 API Key（本机服务可留空）。"};
     if (!IsHttpEndpoint(endpoint) || model.empty())
-        return {false, "请填写有效的 HTTPS 接口地址和模型名。"};
+        return {false, "请填写有效的 HTTP 接口地址和模型名。"};
 
     InitCurl();
     HttpResponse response;
@@ -344,8 +350,8 @@ ModelListResult FetchModels(const Request &request)
         return {false, "不支持的模型列表类型。", {}};
     const std::string token = Value(request, "token");
     const std::string endpoint = Value(request, "endpoint");
-    if (!CloudTranslation::IsUsableSecret(token))
-        return {false, "请先填写有效的 API Key。", {}};
+    if (!CredentialSatisfied(endpoint, token))
+        return {false, "请先填写有效的 API Key（本机服务可留空）。", {}};
     if (!IsHttpEndpoint(endpoint))
         return {false, "请先填写以 http:// 或 https:// 开头的接口地址。", {}};
 

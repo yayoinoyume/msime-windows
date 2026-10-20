@@ -3,6 +3,7 @@
 #include "ai/chat_completions.h"
 #include "ai/chat_request_params.h"
 #include "translation_gloss.h"
+#include "utils/network_proxy.h"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cctype>
@@ -168,7 +169,10 @@ Config FromConfiguredTranslation(const TranslationConfig &config)
 
 bool IsUsableConfig(const Config &config)
 {
-    return config.provider != "jev" && CloudTranslation::IsUsableSecret(config.token) && !config.model.empty() &&
+    // 判据与设置页的凭据测试共用，两边对「配置是否可用」的判断不会分叉。
+    const bool credential_ok =
+        NetworkProxy::IsLoopbackEndpoint(config.endpoint) || CloudTranslation::IsUsableSecret(config.token);
+    return config.provider != "jev" && credential_ok && !config.model.empty() &&
            (config.endpoint.rfind("https://", 0) == 0 || config.endpoint.rfind("http://", 0) == 0);
 }
 

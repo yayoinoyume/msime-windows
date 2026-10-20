@@ -30,6 +30,23 @@ TEST_CASE(AiTranslationValidatesConfig)
         fake.token = placeholder;
         REQUIRE(!AiTranslation::IsUsableConfig(fake));
     }
+
+    // 本机自建的服务（Ollama 等）没有 Key 可填，空 Token 也要算可用。
+    AiTranslation::Config local = valid;
+    local.endpoint = "http://localhost:11434/v1/chat/completions";
+    local.token = "";
+    REQUIRE(AiTranslation::IsUsableConfig(local));
+
+    // 本机豁免只免凭据：模型名仍然必填，否则请求发出去也是空。
+    AiTranslation::Config local_no_model = local;
+    local_no_model.model = "";
+    REQUIRE(!AiTranslation::IsUsableConfig(local_no_model));
+
+    // 局域网不在豁免范围内，仍按远端规则要求真凭据。
+    AiTranslation::Config lan = valid;
+    lan.endpoint = "http://192.168.1.50:11434/v1/chat/completions";
+    lan.token = "";
+    REQUIRE(!AiTranslation::IsUsableConfig(lan));
 }
 
 TEST_CASE(AiTranslationBuildsConfigFromTranslationSnapshot)
