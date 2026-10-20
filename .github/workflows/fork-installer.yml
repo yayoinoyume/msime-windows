@@ -4,8 +4,9 @@ name: Build installer (fork only)
 #
 # 与 .github/workflows/release.yml 的区别（刻意为之）：
 # - 不创建、不发布任何 GitHub Release，只在 run 里上传 artifact。所以不消耗签名额度、不对外公开。
-# - 不签名。产物带 -unsigned 后缀，uiAccess 因此不生效（候选窗盖不住提权窗口），但行序、候选、
-#   上下键这些要验证的行为与签名版一致。
+# - 不签名，因此也不注入 uiAccess=true 的 manifest：声明了 uiAccess 却未签名的 Server
+#   根本起不来（ERROR_ELEVATION_REQUIRED），表现为能打字但没有候选窗。保留默认 manifest
+#   后 Server 能正常启动，代价只是候选窗盖不住管理员权限的窗口。行序、候选、上下键与签名版一致。
 # - 不做 release-please、不合并 PR、不碰 main 的版本序列。
 # - 全流程跑在 GitHub 托管的 windows-2025 上，不依赖上游的自托管 runner。
 #
@@ -180,14 +181,18 @@ jobs:
         shell: pwsh
         run: ./scripts/ci/check-server-binaries.ps1 -BuildDir server/build-release/bin/Release
 
-      # uiAccess=true 的二进制无法在非交互会话里启动，所以先测普通构建，再注入 manifest。
-      - name: Embed the Server uiAccess manifest
+      # 刻意不注入 uiAccess=true 的 manifest。Windows 要求声明 uiAccess 的二进制必须
+      # 签名且装在受信任位置，否则 CreateProcess / ShellExecuteEx 一律返回
+      # ERROR_ELEVATION_REQUIRED，Server 起不来——表现是能打字但没有候选窗。
+      # 本 workflow 不签名，所以保留编译器默认 manifest（uiAccess 为 false），
+      # Server 能正常启动。代价是候选窗盖不住管理员权限的窗口。
+      - name: Skip the uiAccess manifest (unsigned build)
         shell: pwsh
-        run: ./scripts/ci/embed-server-manifest.ps1 -BuildDir server/build-release/bin/Release
-
-      - name: Verify the embedded Server uiAccess manifest
-        shell: pwsh
-        run: ./scripts/ci/check-server-binaries.ps1 -BuildDir server/build-release/bin/Release
+        run: |
+          Write-Host 'Skipping uiAccess manifest: this build is unsigned, uiAccess would prevent the Server from starting.'
+          $exe = 'server/build-release/bin/Release/MetasequoiaImeServer.exe'
+          if (-not (Test-Path -LiteralPath $exe)) { throw "Server binary not found: $exe" }
+          Write-Host "Server binary present: $exe"
 
       - name: Upload the Server build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -338,7 +343,7 @@ jobs:
           - 文件：``$env:NAME``
           - SHA256：``$env:SHA256``
           - 大小：$env:BYTES 字节
-          - 签名：**未签名**（``-unsigned``）。``uiAccess`` 不生效，候选窗盖不住提权窗口；行序与上下键行为与签名版一致。
+          - 签名：**未签名**（``-unsigned``），Server 不带 ``uiAccess``。候选窗盖不住管理员权限的窗口；行序、候选与上下键行为与签名版一致。
 
           下载：本 run 页面底部 Artifacts → ``MetasequoiaIME-fork-installer``。
           "@ >> $env:GITHUB_STEP_SUMMARY
