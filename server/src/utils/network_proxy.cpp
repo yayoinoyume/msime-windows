@@ -13,7 +13,7 @@ namespace
 {
 
 // 本机地址永远直连：自建的翻译/大模型服务常跑在 localhost，让它们绕回代理只会失败。
-// IsLoopbackEndpoint 用同一份主机名判「本机服务免 API 凭据」。
+// IsLoopbackEndpoint 也用这些主机名判「本机服务免 API 凭据」，两处必须同步改。
 constexpr const char *kLoopbackHosts[] = {"localhost", "127.0.0.1", "::1"};
 constexpr char kCurlNoProxy[] = "localhost,127.0.0.1,::1";
 

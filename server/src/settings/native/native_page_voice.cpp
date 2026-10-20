@@ -673,13 +673,14 @@ struct VoicePage : std::enable_shared_from_this<VoicePage>
                                                        BindToggle(context, "voice_input.polish_text"));
             header->SetMargin({0.0f, 0.0f, 0.0f, 12.0f});
             column->Add(header);
-            column->Add(
-                SectionDescription(L"SiliconFlow、OpenAI、DeepSeek、Groq 均走 OpenAI 兼容的 Chat Completions 接口。"));
+            column->Add(SectionDescription(
+                L"各服务商均走 OpenAI 兼容的 Chat Completions 接口，Custom 可填本机 Ollama 等任意兼容服务。"));
             auto grid = std::make_shared<FormGrid>();
             polishProviderDropdown = MakeGridDropdown(Options({{"siliconflow", L"SiliconFlow"},
                                                                {"openai", L"OpenAI"},
                                                                {"deepseek", L"DeepSeek"},
-                                                               {"groq", L"Groq"}}));
+                                                               {"groq", L"Groq"},
+                                                               {"custom", L"Custom（OpenAI 兼容）"}}));
             polishProviderDropdown->SetOnChanged(
                 [this](size_t, const DropdownOption &option) { SwitchPolishProvider(option.value); });
             grid->Add(std::make_shared<Field>(L"服务提供商", polishProviderDropdown));
