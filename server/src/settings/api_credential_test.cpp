@@ -64,12 +64,12 @@ bool IsHttpEndpoint(const std::string &endpoint)
     return endpoint.rfind("https://", 0) == 0 || endpoint.rfind("http://", 0) == 0;
 }
 
-// 与 AiTranslation::IsUsableConfig 同一个判据。只对 AI 辅助放开：ASR 与润色的运行时仍要求
+// 与 AiTranslation::IsUsableConfig 同一个判据。只对 chat 类的服务放开：ASR 的运行时仍要求
 // Token，这里放行会让测试显示成功而功能不动。
 bool CredentialSatisfied(const ApiCredentialTest::Request &request)
 {
     const std::string token = Value(request, "token");
-    if (request.service != "ai.assistant")
+    if (request.service != "ai.assistant" && request.service != "voice.polish")
         return CloudTranslation::IsUsableSecret(token);
     return NetworkProxy::IsLoopbackEndpoint(Value(request, "endpoint")) || CloudTranslation::IsUsableSecret(token);
 }

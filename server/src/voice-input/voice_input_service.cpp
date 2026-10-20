@@ -12,6 +12,7 @@
 #include "ipc/ipc.h"
 #include "system_audio_muter.h"
 #include "utils/common_utils.h"
+#include "utils/network_proxy.h"
 #include "wave_overlay.h"
 #include "cue_player.h"
 
@@ -604,7 +605,9 @@ RecognitionResult Recognize(const std::vector<float> &samples, const VoiceInputC
 
 bool ShouldPolish(const std::string &text, const VoiceInputConfig &config)
 {
-    return config.polish_text && !text.empty() && !VoiceInput::ResolvePolishToken(config).empty() &&
+    return config.polish_text && !text.empty() &&
+           (NetworkProxy::IsLoopbackEndpoint(config.polish_endpoint) ||
+            !VoiceInput::ResolvePolishToken(config).empty()) &&
            !config.polish_endpoint.empty() && !VoiceInput::ResolvePolishModel(config).empty();
 }
 

@@ -79,3 +79,20 @@ TEST_CASE(voice_batch_protocol_sends_deepseek_thinking_level)
     REQUIRE(!foreign.contains("reasoning_effort"));
     REQUIRE(!foreign.contains("enable_thinking"));
 }
+
+TEST_CASE(voice_batch_protocol_polish_to_local_ollama_sends_no_vendor_fields)
+{
+    VoiceInputConfig config;
+    config.polish_model = "qwen2.5:3b";
+    config.polish_prompt = "fixture prompt";
+    // 本机 Ollama：地址判为 Other，任何厂商专有字段都不能带上。
+    config.polish_provider = "deepseek";
+    config.polish_endpoint = "http://localhost:11434/v1/chat/completions";
+    const auto body = nlohmann::json::parse(VoiceInput::BuildBatchPolish("原始文本", config));
+    REQUIRE_EQ(body["model"].get<std::string>(), "qwen2.5:3b");
+    REQUIRE_EQ(body["stream"].get<bool>(), false);
+    REQUIRE(!body.contains("thinking"));
+    REQUIRE(!body.contains("reasoning_effort"));
+    REQUIRE(!body.contains("enable_thinking"));
+    REQUIRE(!body.contains("max_tokens"));
+}

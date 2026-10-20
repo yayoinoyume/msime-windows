@@ -35,12 +35,13 @@ const std::map<std::string, ProviderDefaults> &PolishDefaults()
         {"openai", {"https://api.openai.com/v1/chat/completions", "gpt-4o-mini"}},
         {"deepseek", {"https://api.deepseek.com/chat/completions", "deepseek-v4-flash"}},
         {"groq", {"https://api.groq.com/openai/v1/chat/completions", "llama-3.3-70b-versatile"}},
+        {"custom", {"", ""}},
     };
     return defaults;
 }
 
 const std::vector<std::string> kAsrProviders = {"doubao", "openai", "siliconflow", "groq"};
-const std::vector<std::string> kPolishProviders = {"siliconflow", "openai", "deepseek", "groq"};
+const std::vector<std::string> kPolishProviders = {"siliconflow", "openai", "deepseek", "groq", "custom"};
 // The Server rejects an empty Resource ID, so a cleared field falls back to the hourly 2.0 resource.
 constexpr char kDoubaoDefaultResourceId[] = "volc.seedasr.sauc.duration";
 
