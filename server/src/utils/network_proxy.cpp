@@ -13,7 +13,7 @@ namespace
 {
 
 // 本机地址永远直连：自建的翻译/大模型服务常跑在 localhost，让它们绕回代理只会失败。
-// IsLoopbackEndpoint 用同一份主机名判「本机服务免 API 凭据」，改这里记得跟着改。
+// IsLoopbackEndpoint 用同一份主机名判「本机服务免 API 凭据」。
 constexpr const char *kLoopbackHosts[] = {"localhost", "127.0.0.1", "::1"};
 constexpr char kCurlNoProxy[] = "localhost,127.0.0.1,::1";
 
@@ -25,7 +25,7 @@ std::string HostOfEndpoint(const std::string &endpoint)
     if (at_scheme == std::string::npos)
         return {};
     std::string rest = endpoint.substr(at_scheme + scheme.size());
-    // IPv6 字面量带方括号（http://[::1]:11434/...），方括号里不含 '/'，先按路径切不会切坏。
+    // IPv6 字面量带方括号，方括号里不含 '/'，先按路径切不会切坏。
     const size_t at_path = rest.find('/');
     if (at_path != std::string::npos)
         rest = rest.substr(0, at_path);
@@ -130,15 +130,12 @@ std::string PickHttpsProxyFromWindowsList(const std::wstring &proxy_list)
     return https.empty() ? http : https;
 }
 
-// 端点是否跑在本机：本机服务（Ollama 等）不要求 API 凭据。主机名与上面给 libcurl 的
-// no-proxy 表严格一致——局域网与 127/8 里的其他地址都算远端：前者可能是公司内网或共享
-// 机器，后者会让请求绕过本该生效的代理，是否免鉴权该由用户明示。
+// 本机服务（Ollama 等）不要求 API 凭据。局域网不算，那可能是公司内网或共享机器。
 bool IsLoopbackEndpoint(const std::string &endpoint)
 {
     std::string host = HostOfEndpoint(endpoint);
     if (host.empty())
         return false;
-    // 主机名大小写不敏感（RFC 3986），用户手填 LOCALHOST 也要认。
     for (char &ch : host)
     {
         if (ch >= 'A' && ch <= 'Z')

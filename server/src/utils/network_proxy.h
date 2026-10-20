@@ -31,8 +31,7 @@ void ApplyToCurl(CURL *curl);
 // 请求用的 HTTP 代理，返回 host:port；没有可用项时返回空串。暴露出来供测试。
 std::string PickHttpsProxyFromWindowsList(const std::wstring &proxy_list);
 
-// 端点是否指向本机：本机自建的服务（Ollama 等）没有 API 凭据可填，凭据校验据此放行。
-// 暴露出来供测试。
+// 端点是否指向本机：本机自建的服务（Ollama 等）没有 API 凭据可填。暴露出来供测试。
 bool IsLoopbackEndpoint(const std::string &endpoint);
 
 } // namespace NetworkProxy

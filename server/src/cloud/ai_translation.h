@@ -20,8 +20,7 @@ struct Config
 // 两边对「配置是否可用」的判断不会分叉。
 Config FromConfiguredTranslation(const TranslationConfig &config);
 
-// token 按 CloudTranslation::IsUsableSecret 校验，出厂模板里的占位符不算可用；
-// 端点在本机时免凭据（自建的 Ollama 等没有 Key 可填）。
+// token 按 CloudTranslation::IsUsableSecret 校验，出厂模板里的占位符不算可用；端点在本机时免凭据。
 bool IsUsableConfig(const Config &config);
 
 namespace detail

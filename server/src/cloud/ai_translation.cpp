@@ -169,7 +169,6 @@ Config FromConfiguredTranslation(const TranslationConfig &config)
 
 bool IsUsableConfig(const Config &config)
 {
-    // 判据与设置页的凭据测试共用，两边对「配置是否可用」的判断不会分叉。
     const bool credential_ok =
         NetworkProxy::IsLoopbackEndpoint(config.endpoint) || CloudTranslation::IsUsableSecret(config.token);
     return config.provider != "jev" && credential_ok && !config.model.empty() &&
