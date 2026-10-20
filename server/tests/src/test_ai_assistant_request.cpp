@@ -91,6 +91,22 @@ TEST_CASE(ai_request_uses_openai_completion_limit_for_older_models)
     REQUIRE_EQ(AiAssistant::detail::RequestTimeoutMs(request.config), 8000L);
 }
 
+TEST_CASE(ai_request_keys_the_output_limit_off_the_endpoint)
+{
+    // openai 槽里填本机 Ollama：Ollama 的兼容层只认 max_tokens，未知的 max_completion_tokens
+    // 会被 Go 的 JSON 解码静默丢弃，配置的上限也就失效了。字段必须跟着地址走。
+    auto ollama = MakeRequest("openai", "disabled", "http://localhost:11434/v1/chat/completions");
+    const auto ollama_body = AiAssistant::detail::BuildRequestBody(ollama);
+    REQUIRE_EQ(ollama_body["max_tokens"].get<int>(), 512);
+    REQUIRE(!ollama_body.contains("max_completion_tokens"));
+
+    // 反过来：custom 槽指向真正的 OpenAI，仍然发 max_completion_tokens。
+    auto real = MakeRequest("custom", "disabled", "https://api.openai.com/v1/chat/completions");
+    const auto real_body = AiAssistant::detail::BuildRequestBody(real);
+    REQUIRE_EQ(real_body["max_completion_tokens"].get<int>(), 512);
+    REQUIRE(!real_body.contains("max_tokens"));
+}
+
 TEST_CASE(ai_request_omits_unsupported_sampling_for_openai_reasoning_models)
 {
     for (const char *model : {"gpt-5.6-luna", "GPT-5.6-Luna", "gpt-5", "o3-mini", "O3-mini"})
@@ -140,6 +156,20 @@ TEST_CASE(credential_test_uses_openai_completion_limit)
         REQUIRE(!body.contains("temperature"));
         REQUIRE_EQ(body["messages"][0]["content"].get<std::string>(), "Reply OK");
     }
+}
+
+TEST_CASE(credential_test_keys_the_output_limit_off_the_endpoint)
+{
+    // 探针也必须按地址选字段，否则 openai 槽里填 Ollama 时上限同样会被静默忽略。
+    const auto ollama = ApiCredentialTest::detail::BuildChatProbeRequestBody(
+        "openai", "gpt-4o-mini", "http://localhost:11434/v1/chat/completions");
+    REQUIRE_EQ(ollama["max_tokens"].get<int>(), 1);
+    REQUIRE(!ollama.contains("max_completion_tokens"));
+
+    const auto real = ApiCredentialTest::detail::BuildChatProbeRequestBody(
+        "custom", "gpt-4o-mini", "https://api.openai.com/v1/chat/completions");
+    REQUIRE_EQ(real["max_completion_tokens"].get<int>(), 1);
+    REQUIRE(!real.contains("max_tokens"));
 }
 
 TEST_CASE(credential_test_keeps_other_provider_request_shape)

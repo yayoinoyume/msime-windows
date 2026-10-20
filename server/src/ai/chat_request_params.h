@@ -43,8 +43,11 @@ inline bool IsOpenAiReasoningRequest(std::string_view provider, std::string_view
 inline constexpr const char *kOpenAiReasoningEffort = "low";
 inline constexpr long kReasoningTimeoutMs = 30000;
 
-inline void SetTokenLimit(nlohmann::json &body, std::string_view provider, int limit)
+// Which output-limit field an endpoint accepts is a property of the endpoint, not of the settings
+// label: only real OpenAI takes max_completion_tokens, while every other OpenAI-compatible service
+// (Ollama among them) silently drops it and falls back to its own default cap.
+inline void SetTokenLimit(nlohmann::json &body, VoiceInput::ChatVendor vendor, int limit)
 {
-    body[IsOpenAiProvider(provider) ? "max_completion_tokens" : "max_tokens"] = limit;
+    body[vendor == VoiceInput::ChatVendor::OpenAI ? "max_completion_tokens" : "max_tokens"] = limit;
 }
 } // namespace ChatCompletions
