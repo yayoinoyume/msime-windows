@@ -604,8 +604,11 @@ RecognitionResult Recognize(const std::vector<float> &samples, const VoiceInputC
 
 bool ShouldPolish(const std::string &text, const VoiceInputConfig &config)
 {
-    return config.polish_text && !text.empty() && !VoiceInput::ResolvePolishToken(config).empty() &&
-           !config.polish_endpoint.empty() && !VoiceInput::ResolvePolishModel(config).empty();
+    // 本机端点免凭据。
+    const bool credential_ok =
+        NetworkProxy::IsLoopbackEndpoint(config.polish_endpoint) || !VoiceInput::ResolvePolishToken(config).empty();
+    return config.polish_text && !text.empty() && credential_ok && !config.polish_endpoint.empty() &&
+           !VoiceInput::ResolvePolishModel(config).empty();
 }
 
 std::string Polish(const std::string &text, const VoiceInputConfig &config)
@@ -628,7 +631,9 @@ std::string Polish(const std::string &text, const VoiceInputConfig &config)
     std::string response;
     curl_slist *headers = nullptr;
     headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(headers, ("Authorization: Bearer " + polish_token).c_str());
+    // 空 token 不发空 "Bearer "。
+    if (!polish_token.empty())
+        headers = curl_slist_append(headers, ("Authorization: Bearer " + polish_token).c_str());
     curl_easy_setopt(curl, CURLOPT_URL, config.polish_endpoint.c_str());
     NetworkProxy::ApplyToCurl(curl);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);

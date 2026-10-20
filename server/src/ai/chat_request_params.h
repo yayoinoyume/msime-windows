@@ -1,5 +1,6 @@
 #pragma once
 
+#include "utils/network_proxy.h"
 #include "voice-input/voice_providers.h"
 
 #include <nlohmann/json.hpp>
@@ -43,8 +44,15 @@ inline bool IsOpenAiReasoningRequest(std::string_view provider, std::string_view
 inline constexpr const char *kOpenAiReasoningEffort = "low";
 inline constexpr long kReasoningTimeoutMs = 30000;
 
-inline void SetTokenLimit(nlohmann::json &body, std::string_view provider, int limit)
+// 只有真正的 OpenAI 端点认 max_completion_tokens，其余兼容服务（含 Ollama）会静默丢弃。
+// 不能按 VendorForRequest 判断：那会把 Azure OpenAI 和 OpenRouter 中转降成 max_tokens。
+inline bool UsesOpenAiOutputField(std::string_view provider, std::string_view endpoint)
 {
-    body[IsOpenAiProvider(provider) ? "max_completion_tokens" : "max_tokens"] = limit;
+    return IsOpenAiProvider(provider) && !NetworkProxy::IsLoopbackEndpoint(endpoint);
+}
+
+inline void SetTokenLimit(nlohmann::json &body, bool use_openai_field, int limit)
+{
+    body[use_openai_field ? "max_completion_tokens" : "max_tokens"] = limit;
 }
 } // namespace ChatCompletions

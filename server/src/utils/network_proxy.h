@@ -17,6 +17,7 @@
 #include <winhttp.h>
 
 #include <string>
+#include <string_view>
 
 namespace NetworkProxy
 {
@@ -30,5 +31,8 @@ void ApplyToCurl(CURL *curl);
 // 从 Windows 代理字符串（"host:port" 或 "http=a:1;https=b:2;socks=c:3"）里挑出给 HTTPS
 // 请求用的 HTTP 代理，返回 host:port；没有可用项时返回空串。暴露出来供测试。
 std::string PickHttpsProxyFromWindowsList(const std::wstring &proxy_list);
+
+// 端点是否指向本机（localhost / 127.0.0.1 / [::1]）。不含私网网段。
+bool IsLoopbackEndpoint(std::string_view endpoint);
 
 } // namespace NetworkProxy
